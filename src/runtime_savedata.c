@@ -402,16 +402,18 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
         int t=snprintf(target,sizeof(target),"%s/%s",snapshot,names[i]);
         if (t<0 || (size_t)t>=sizeof(target) || backup_tree_path(sources[i],target,0,buffer)) result=-1;
     }
-    if (!result && rename(snapshot,complete)) result=-1;
-    if (!result) {
-        runtime_file_unmount(point->data); slots[slot].used=0;
-        backup_progress=1;
+    if (!result && rename(snapshot,complete)==0) {
         printf("Runtime: save backup completed: %s\n",complete);
-    }
+    } else if (!result) result=-1;
 done:
+    /* The backup is best-effort: the save itself is already on disk, so the mount is always released
+     * (a mount left behind makes every later mount of this save fail with ERR_BAD_MOUNTED). */
+    if (result) printf("Runtime: save backup skipped (step failed, errno=%d)\n",errno);
+    runtime_file_unmount(point->data); slots[slot].used=0;
+    backup_progress=1;
     free(buffer);
     pthread_mutex_unlock(&lock);
-    return result ? ERR_INTERNAL : 0;
+    return 0;
 }
 #endif
 static ABI int32_t save_get_param(const MountPoint *point, uint32_t type, void *buffer,
