@@ -22,6 +22,35 @@ WINDOWS = os.name == 'nt'
 EXE_SUFFIX = '.exe' if WINDOWS else ''
 
 
+def _clear_high_entropy_va(directory):
+    """Windows only. The runtime reserves guest address space at 0x1000000000-0xfc00000000, and
+    Windows may otherwise put DLLs, heaps or stacks anywhere in 128 TiB (high-entropy ASLR),
+    which makes the reservation fail with error 487 now and then. The runtime itself is linked
+    without the flag; this clears it in the bundled DLLs too so they load low. Idempotent:
+    only two header bytes change, and only when the flag is set."""
+    if not WINDOWS:
+        return
+    for dll in sorted(Path(directory).glob('*.dll')):
+        try:
+            with open(dll, 'r+b') as stream:
+                head = stream.read(0x400)
+                if head[:2] != b'MZ':
+                    continue
+                pe = int.from_bytes(head[0x3c:0x40], 'little')
+                if pe + 0x60 > len(head) or head[pe:pe + 4] != b'PE\0\0':
+                    continue
+                optional = pe + 24
+                if int.from_bytes(head[optional:optional + 2], 'little') != 0x20b:  # PE32+
+                    continue
+                field = optional + 70
+                flags = int.from_bytes(head[field:field + 2], 'little')
+                if flags & 0x20:
+                    stream.seek(field)
+                    stream.write((flags & ~0x20).to_bytes(2, 'little'))
+        except OSError as error:
+            print(f'Warning: could not adjust {dll.name}: {error}', file=sys.stderr)
+
+
 def _exec(program, argv, env=None):
     """Replace this process with program (POSIX), or run it to completion and exit with its
     status (Windows has no exec: os.exec* there starts a detached child and returns at once,
@@ -237,6 +266,7 @@ def main(argv=None) -> int:
     # Portable archives use bin/ps4rt; developer builds retain out/ps4rt.
     portable = ROOT / ('bin/ps4rt' + EXE_SUFFIX)
     runtime = portable if portable.is_file() else ROOT / ('out/ps4rt' + EXE_SUFFIX)
+    _clear_high_entropy_va(runtime.parent)
     if not args.prepare_only and not runtime.is_file():
         parser.error('Runtime missing: build with bash build.sh or use a portable release')
     if updates_enabled:
