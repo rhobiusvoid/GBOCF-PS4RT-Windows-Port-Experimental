@@ -367,6 +367,32 @@ static int backup_tree_path(const char *source,const char *dest,unsigned depth,u
     closedir(dir);
     return result;
 }
+/* Keeps the newest BACKUP_KEEP completed snapshots and deletes leftovers of failed attempts. */
+#define BACKUP_KEEP 10
+static int name_cmp(const void *a,const void *b) { return strcmp((const char *)a,(const char *)b); }
+static void backup_prune(const char *base) {
+    DIR *dir=opendir(base);
+    if (!dir) return;
+    static char done[256][64];
+    unsigned count=0;
+    struct dirent *entry;
+    while ((entry=readdir(dir))) {
+        char path[900];
+        if (!strncmp(entry->d_name,"incomplete-",11)) {
+            snprintf(path,sizeof(path),"%s/%s",base,entry->d_name);
+            remove_tree(path);
+        } else if (!strncmp(entry->d_name,"backup-",7) && count<256 && strlen(entry->d_name)<64) {
+            strcpy(done[count++],entry->d_name);
+        }
+    }
+    closedir(dir);
+    qsort(done,count,64,name_cmp);
+    for (unsigned i=0;i+BACKUP_KEEP<count;++i) {
+        char path[900];
+        snprintf(path,sizeof(path),"%s/%s",base,done[i]);
+        remove_tree(path);
+    }
+}
 static ABI int32_t save_umount_backup(const MountPoint *point) {
     printf("Runtime: SaveData umount-with-backup %s\n",point ? point->data : "?");
     if (!initialized) return ERR_NOT_INITIALIZED;
@@ -379,6 +405,7 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
     char prefix[720],base[800],snapshot[850],complete[850];
     snprintf(prefix,sizeof(prefix),"%s/savedata/",user);
     int result=-1;
+    base[0]=0; snapshot[0]=0; complete[0]=0;
     const char *why="alloc";
     unsigned char *buffer=malloc(65536);
     if (!buffer) goto done;
@@ -419,6 +446,8 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
 done:
     /* The backup is best-effort: the save itself is already on disk, so the mount is always released
      * (a mount left behind makes every later mount of this save fail with ERR_BAD_MOUNTED). */
+    if (result && snapshot[0]) remove_tree(snapshot);
+    if (base[0]) backup_prune(base);
     if (result) printf("Runtime: save backup skipped at %s: %s (errno=%d, win32=%lu) snapshot=%s\n",why,backup_fail,errno,(unsigned long)GetLastError(),snapshot);
     runtime_file_unmount(point->data); slots[slot].used=0;
     backup_progress=1;
