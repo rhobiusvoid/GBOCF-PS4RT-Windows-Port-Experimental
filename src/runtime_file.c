@@ -193,7 +193,16 @@ static File *get(int fd) {
 /* Save-data I/O trace (first 400 events): a Windows save-load problem needs to be seen, not guessed. */
 static void save_trace(const char *guest,const char *what,long long a,long long b) {
     static unsigned count;
-    if (!guest || strncmp(guest,"/savedata",9)) return;
+    if (!guest) return;
+    if (strncmp(guest,"/savedata",9)) {
+        /* Elsewhere: only writes and write-capable opens, in case the game saves outside /savedata. */
+        static unsigned other;
+        int wr=!strcmp(what,"write")||!strcmp(what,"pwrite")||
+               ((!strcmp(what,"open")||!strcmp(what,"open-failed"))&&(a&0x603));
+        if (!wr||__atomic_fetch_add(&other,1,__ATOMIC_RELAXED)>=200) return;
+        printf("WriteIO: %s %s %lld %lld\n",what,guest,a,b);
+        return;
+    }
     if (__atomic_fetch_add(&count,1,__ATOMIC_RELAXED)>=400) return;
     printf("SaveIO: %s %s %lld %lld\n",what,guest,a,b);
 }
