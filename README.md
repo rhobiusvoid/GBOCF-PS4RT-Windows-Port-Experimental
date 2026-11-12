@@ -1,28 +1,22 @@
 # Mobile Suit Gundam Battle Operation Code Fairy (PS4): PS4RT for Linux
 
-Game-specific **Linux x86-64 compatibility runtime** for **MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy** (PlayStation 4, **CUSA28763, v01.03**). Developed and gameplay-tested on Fedora Linux.
+Game-specific **Windows port of a Linux x86-64 compatibility runtime** for **MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy** (PlayStation 4, **CUSA28763, v01.03**). Developed and gameplay-tested on Fedora Linux, then tested on Windows 10.
 
-PS4RT runs prepared original PS4 x86-64 game code through Linux-hosted PS4 service compatibility layers and a **shadPS4-derived Vulkan renderer**. It is **not** a general PS4 emulator, a recreation of the game, or a substitute for owning the game.
+PS4RT runs prepared original PS4 x86-64 game code through Windows-hosted PS4 service compatibility layers and a **shadPS4-derived Vulkan renderer**. It is **not** a general PS4 emulator, a recreation of the game, or a substitute for owning the game.
 
 <p align="center">
   <img src="docs/images/sample.png" alt="Code Fairy running in ultrawide on Linux with FSR 4 and a 60 FPS performance overlay" width="1100">
 </p>
 
-**Bring your own game and volume unlock keys.** To access Code Fairy's three episodic volumes, you need **(1) the extracted CUSA28763 game, (2) game version v01.03, and (3) all three volume unlock-key PKGs**. If your extracted game is already v01.03, you do not need to apply a separate update PKG. The volume keys are **not optional gameplay DLC**: they unlock the corresponding episodes already in the game. PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 firmware, user saves, decrypted executables or PlayStation Network authentication is provided. This project is independent of the game's rights holders, Sony and AMD.
+**Bring your own game and volume unlock keys.** To access Code Fairy's three episodic volumes, you need **(1) the extracted CUSA28763 game, (2) game version v01.03 in PKG format, and (3) all three volume unlock-key PKGs**. If your extracted game is already v01.03, you do not need to apply a separate update PKG. The volume keys are **not optional gameplay DLC**: they unlock the corresponding episodes already in the game, and the game will not progress past the title screen if you don't own Volume 1 at least. 
+
+PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 firmware, user saves, decrypted executables or PlayStation Network authentication is provided. This project is independent of the game's rights holders, Sony and AMD.
 
 ## Download and play
 
-**This repository is a pre-release source review workspace.** When a player release is published, download the **Linux x86-64 player archive** (not the source archive) from the project's GitHub Releases page. The portable release is designed to include the native PKG installer and required application libraries, so players do not need to compile PS4RT or install an external PS4 PKG extractor.
+This specific repo is a Windows port. Just download one of the releases, extract the following .7z file and run Play-Game.bat in a CMD window (or don't if you don't want to maintain logs), then follow the instructions to set the game up.
 
-1. Extract the PS4RT player archive into a writable folder and keep its contents together.
-2. Prepare your own plaintext **`CUSA28763`** game directory, containing `eboot.bin`, `sce_sys/param.sfo`, `sce_module/` and the game data.
-3. Open a terminal in the extracted PS4RT player directory and run:
-
-~~~bash
-bash Play-Game.sh --game "/absolute/path/to/CUSA28763"
-~~~
-
-After successful setup, the path is remembered. For later sessions, simply run `bash Play-Game.sh`. Pass `--game` again if you move or replace the extracted game directory. Quote paths containing spaces.
+After successful setup, the path is remembered. For later sessions, simply run `Play-Game.bat`. Pass `--game` again if you move or replace the extracted game directory. Quote paths containing spaces. You can also pass `--dlc-pkg <path>` in order to install the Volume keys, in case you weren't able to install them during initial setup. This option is also available in the 'Insert' GUI.
 
 ### Required v01.03 game version and episodic volume keys
 
@@ -31,7 +25,7 @@ After successful setup, the path is remembered. For later sessions, simply run `
 - **Already have extracted v01.03:** PS4RT validates and prepares the game directly.
 - **Have extracted v01.00:** The integrated setup asks for your own matching **CUSA28763 v01.03 update PKG** and applies the update before launching.
 - **Important:** Applying that update **modifies the selected extracted CUSA28763 directory in place**. Back up the original v01.00 directory beforehand if you need to preserve it for another application. Your source PKG is not modified.
-- **Three volume unlock-key PKGs are required to access all three volumes.** Code Fairy is episodic: these keys unlock existing story content; they are not conventional add-on DLC. After applying an update, PS4RT may offer a package picker. You can skip it to finish setup, but the volumes remain locked until their keys are installed. You can install the keys later using **Install DLC...** in the Graphics overlay.
+- **Three volume unlock-key PKGs are required to access all three volumes.** Code Fairy is episodic: these keys unlock existing story content; they are not conventional add-on DLC. After applying an update, PS4RT may offer a package picker. You can skip it to finish setup, but the volumes remain locked until their keys are installed. You can install the keys later using **Install DLC...** in the Graphics overlay by pressing 'Insert.'
 - If setup is interrupted, rerun the launcher and supply the same update PKG to repair the installation.
 
 See [Player update and volume-key setup](docs/PLAYER_PKG_SETUP.md) for detailed steps and command-line alternatives.
@@ -50,17 +44,13 @@ Available features include:
 - **Local achievements:** The game triggers trophy unlocks; the PS4RT overlay saves and displays progress, earned timestamps, icons and hidden entries. This is **not PSN trophy synchronization**, and previously completed objectives are not guaranteed to unlock retroactively.
 - **Volume key installation:** Use the overlay's existing **Install DLC...** button for the three volume unlock-key PKGs. The button retains its generic name because the keys use the same PS4 add-on package mechanism; **no separate DLC is required**. Save and restart after installing keys so the game recognizes the unlocked volumes.
 
-Optional launch-time overrides for the supported CLI subset:
-
-~~~bash
-bash Play-Game.sh --game "/absolute/path/to/CUSA28763" --upscaler fsr4 --output-resolution 4k
-~~~
-
 The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide choices; not every menu option has a launcher flag. See [Running on Linux](docs/RUNNING_LINUX.md) for details.
 
 ## Current compatibility status
 
-**Playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X.** Gameplay QA has covered the tutorial, story missions through Chapter 9, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. **Volume 3 has not been fully gameplay-tested.** The displayed 60 FPS/FSR 4 screenshot documents a particular tested configuration, not a performance guarantee for other GPUs.
+**Playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X (using the original Linux build, by Hakemi).** Gameplay QA has covered the tutorial, story missions through Chapter 9, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. **Volume 3 has not been fully gameplay-tested.** The displayed 60 FPS/FSR 4 screenshot documents a particular tested configuration, not a performance guarantee for other GPUs.
+
+**Windows 10 was able to go up to Chapter 2 before a trophy crash that was fixed in 0.2.** The rest of the game should be playable from start to finish with no worries.
 
 Known limitations and notes:
 
