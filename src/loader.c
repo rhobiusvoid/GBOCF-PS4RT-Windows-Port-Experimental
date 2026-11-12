@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
@@ -123,21 +124,42 @@ static void describe_address(char *out, size_t size, uintptr_t address) {
     snprintf(out,size,"%p",(void *)address);
 }
 static int fatal_reported;
+/* One WriteFile per report: msvcrt writes unbuffered stderr a character at a time, so with the
+ * GPU and audio threads logging at the same moment the fault text came out interleaved. */
+static void report_append(char *buffer, size_t size, size_t *used, const char *format, ...) {
+    if (*used>=size) return;
+    va_list args;
+    va_start(args,format);
+    int n=vsnprintf(buffer+*used,size-*used,format,args);
+    va_end(args);
+    if (n>0) *used = (size_t)n<size-*used ? *used+(size_t)n : size;
+}
 static LONG fatal_exception(EXCEPTION_POINTERS *info) {
     if (__atomic_exchange_n(&fatal_reported,1,__ATOMIC_ACQ_REL)) { Sleep(INFINITE); }
     const EXCEPTION_RECORD *record=info->ExceptionRecord;
     const CONTEXT *c=info->ContextRecord;
+    static char report[16384];
+    size_t used=0;
     char where[MAX_PATH+64];
     describe_address(where,sizeof(where),(uintptr_t)c->Rip);
     if (record->ExceptionCode==EXCEPTION_ACCESS_VIOLATION && record->NumberParameters>=2)
-        fprintf(stderr,"Fault: %s access to %p at %s (thread %lu)\n",
+        report_append(report,sizeof(report),&used,"\nFault: %s access to %p at %s (thread %lu)\n",
                 record->ExceptionInformation[0]==1 ? "write" : record->ExceptionInformation[0]==8 ? "execute" : "read",
                 (void *)record->ExceptionInformation[1],where,GetCurrentThreadId());
     else
-        fprintf(stderr,"Fault: exception 0x%08lx at %s (thread %lu)\n",record->ExceptionCode,where,GetCurrentThreadId());
-    fprintf(stderr,"  rax=%016llx rbx=%016llx rcx=%016llx rdx=%016llx\n  rsi=%016llx rdi=%016llx rbp=%016llx rsp=%016llx\n",
-            c->Rax,c->Rbx,c->Rcx,c->Rdx,c->Rsi,c->Rdi,c->Rbp,c->Rsp);
+        report_append(report,sizeof(report),&used,"\nFault: exception 0x%08lx at %s (thread %lu)\n",record->ExceptionCode,where,GetCurrentThreadId());
+    report_append(report,sizeof(report),&used,"  rip=%016llx\n  rax=%016llx rbx=%016llx rcx=%016llx rdx=%016llx\n  rsi=%016llx rdi=%016llx rbp=%016llx rsp=%016llx\n  r8 =%016llx r9 =%016llx r10=%016llx r11=%016llx\n  r12=%016llx r13=%016llx r14=%016llx r15=%016llx\n",
+            c->Rip,c->Rax,c->Rbx,c->Rcx,c->Rdx,c->Rsi,c->Rdi,c->Rbp,c->Rsp,c->R8,c->R9,c->R10,c->R11,c->R12,c->R13,c->R14,c->R15);
+    report_append(report,sizeof(report),&used,"  image=%p\n",(void *)image);
 
+    /* Stack words: after a call through a bad pointer the first one is the return address. */
+    for (int i=0;i<24;++i) {
+        uintptr_t word=0;
+        SIZE_T got=0;
+        if (!ReadProcessMemory(GetCurrentProcess(),(void *)(uintptr_t)(c->Rsp+8*(DWORD64)i),&word,sizeof(word),&got) || got!=sizeof(word)) break;
+        describe_address(where,sizeof(where),word);
+        report_append(report,sizeof(report),&used,"  [rsp+0x%02x] %016llx  %s\n",i*8,(unsigned long long)word,where);
+    }
     /* rbp chain (guest and host code keep frame pointers). */
     uintptr_t rbp=(uintptr_t)c->Rbp;
     for (int depth=0; depth<24 && rbp; ++depth) {
@@ -145,9 +167,12 @@ static LONG fatal_exception(EXCEPTION_POINTERS *info) {
         SIZE_T got=0;
         if (!ReadProcessMemory(GetCurrentProcess(),(void *)rbp,frame,sizeof(frame),&got) || got!=sizeof(frame) || frame[0]<=rbp) break;
         describe_address(where,sizeof(where),frame[1]);
-        fprintf(stderr,"  #%d %s\n",depth,where);
+        report_append(report,sizeof(report),&used,"  #%d %s\n",depth,where);
         rbp=frame[0];
     }
+    HANDLE err=GetStdHandle(STD_ERROR_HANDLE);
+    DWORD written=0;
+    if (err && err!=INVALID_HANDLE_VALUE) WriteFile(err,report,(DWORD)used,&written,NULL);
     if (isa_table) isa_rewrite_report(isa_table,stderr);
     fflush(NULL);
     TerminateProcess(GetCurrentProcess(),3);
