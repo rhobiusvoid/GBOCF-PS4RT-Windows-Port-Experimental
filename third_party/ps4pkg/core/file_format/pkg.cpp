@@ -329,7 +329,10 @@ bool PKG::Extract(const std::filesystem::path& filepath, const std::filesystem::
     bool dinode_reached = false;
     bool uroot_reached = false;
     std::vector<char> compressedData;
-    std::vector<char> decompressedData(0x10000);
+    // Inode/Dirent copies below read whole structs (96 / 528 bytes) at offsets close to the end
+    // of a 64 KiB block. Pad the buffer so those reads never leave the allocation; Windows places
+    // a 64 KiB vector at the edge of its own pages, so the overread would fault there.
+    std::vector<char> decompressedData(0x10000 + 0x400);
 
     // Get iNdoes and Dirents.
     for (int i = 0; i < num_blocks; i++) {
@@ -451,7 +454,7 @@ void PKG::ExtractFiles(const int index) {
     if (inode_type == PFS_FILE) {
         int sector_loc = iNodeBuf[inode_number].loc;
         int nblocks = iNodeBuf[inode_number].Blocks;
-        int bsize = iNodeBuf[inode_number].Size;
+        const s64 bsize = iNodeBuf[inode_number].Size; // 64-bit: files can exceed 2 GiB
 
         Common::FS::IOFile inflated;
         inflated.Open(extractPaths[inode_number], Common::FS::FileAccessMode::Write);
@@ -459,7 +462,7 @@ void PKG::ExtractFiles(const int index) {
         Common::FS::IOFile pkgFile; // Open the file for each iteration to avoid conflict.
         pkgFile.Open(pkgpath, Common::FS::FileAccessMode::Read);
 
-        int size_decompressed = 0;
+        s64 size_decompressed = 0;
         std::vector<char> compressedData;
         std::vector<char> decompressedData(0x10000);
 
@@ -522,7 +525,7 @@ void PKG::ExtractFiles(const int index) {
                 inflated.WriteRaw<u8>(decompressedData.data(), decompressedData.size());
             } else {
                 // This is to remove the zeros at the end of the file.
-                const u32 write_size = decompressedData.size() - (size_decompressed - bsize);
+                const u32 write_size = static_cast<u32>(decompressedData.size() - (size_decompressed - bsize));
                 inflated.WriteRaw<u8>(decompressedData.data(), write_size);
             }
         }
