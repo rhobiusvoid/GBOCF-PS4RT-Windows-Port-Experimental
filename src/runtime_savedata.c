@@ -375,9 +375,12 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
     char prefix[720],base[800],snapshot[850],complete[850];
     snprintf(prefix,sizeof(prefix),"%s/savedata/",user);
     int result=-1;
+    const char *why="alloc";
     unsigned char *buffer=malloc(65536);
     if (!buffer) goto done;
+    why="prefix";
     if (strncmp(slots[slot].host,prefix,strlen(prefix))) goto done;
+    why="mkdirs";
     int n=snprintf(base,sizeof(base),"%s/savedata-backups/%s",user,slots[slot].host+strlen(prefix));
     if (n<0 || n>=700 || make_dirs(base)) goto done;
     char suffix[32];
@@ -388,7 +391,9 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
     n=snprintf(snapshot,sizeof(snapshot),"%s/incomplete-%s",base,suffix);
     int m=snprintf(complete,sizeof(complete),"%s/backup-%s",base,suffix);
     if (n<0 || m<0 || (size_t)n>=sizeof(snapshot) || (size_t)m>=sizeof(complete)) goto done;
+    why="mkdir-snapshot";
     if (mkdir(snapshot,0700)) goto done;
+    why="copy";
     const char *sources[]={slots[slot].host,slots[slot].meta};
     const char *names[]={"data","sce_sys"};
     result=0;
@@ -402,13 +407,14 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
         int t=snprintf(target,sizeof(target),"%s/%s",snapshot,names[i]);
         if (t<0 || (size_t)t>=sizeof(target) || backup_tree_path(sources[i],target,0,buffer)) result=-1;
     }
+    why="rename";
     if (!result && rename(snapshot,complete)==0) {
         printf("Runtime: save backup completed: %s\n",complete);
     } else if (!result) result=-1;
 done:
     /* The backup is best-effort: the save itself is already on disk, so the mount is always released
      * (a mount left behind makes every later mount of this save fail with ERR_BAD_MOUNTED). */
-    if (result) printf("Runtime: save backup skipped (step failed, errno=%d)\n",errno);
+    if (result) printf("Runtime: save backup skipped at %s (errno=%d) host=%s user=%s\n",why,errno,slots[slot].host,user);
     runtime_file_unmount(point->data); slots[slot].used=0;
     backup_progress=1;
     free(buffer);
