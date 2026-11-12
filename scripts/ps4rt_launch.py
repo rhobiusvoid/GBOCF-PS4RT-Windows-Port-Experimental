@@ -31,7 +31,10 @@ def _exec(program, argv, env=None):
             os.execv(program, argv)
         os.execve(program, argv, env)
     sys.stdout.flush()
-    sys.exit(subprocess.call(argv, env=env))
+    code = subprocess.call(argv, env=env)
+    if code:
+        print(f'ps4rt.exe exited with code {code} (0x{code & 0xffffffff:08X})', file=sys.stderr)
+    sys.exit(code)
 
 
 def _join_command(argv):
