@@ -6,12 +6,12 @@ The portable runtime includes a native PKG parser and graphical setup utility. N
 
 ## First launch
 
-1. Have your own extracted plaintext `CUSA28763` folder, containing `eboot.bin` and `sce_sys/param.sfo`.
-2. Extract the PS4RT Linux player archive into a writable directory.
-3. From the player directory, run:
+1. Have your own extracted plaintext `CUSA28763` folder, containing `eboot.bin` and `sce_sys\param.sfo`. To extract a game PKG yourself, run `bin\ps4rt-pkg.exe "C:\path\to\game.pkg" "C:\path\to\output-folder"`.
+2. Extract the PS4RT Windows package into a writable folder (for example `C:\CodeFairy\`).
+3. Open a `cmd` window in that folder and run:
 
-~~~bash
-bash Play-Game.sh --game "/absolute/path/to/CUSA28763"
+~~~bat
+Play-Game.bat --game "C:\path\to\CUSA28763"
 ~~~
 
 4. **Already v01.03?** The launcher validates and starts the game without presenting a required update picker.
@@ -26,9 +26,9 @@ An interrupted update is detected and will prevent launching until repaired. Rel
 
 For scripted or headless setup, optional arguments are available:
 
-~~~bash
-bash Play-Game.sh --game "/absolute/path/to/CUSA28763" \
-  --update-pkg "/absolute/path/to/your-v01.03-update.pkg" --no-dialogs
+~~~bat
+Play-Game.bat --game "C:\path\to\CUSA28763" ^
+  --update-pkg "C:\path\to\your-v01.03-update.pkg" --no-dialogs
 ~~~
 
 Alternatively, `--update-extracted` accepts a correctly extracted matching update folder. Supply **one** of `--update-pkg` or `--update-extracted`, not both. These options are for player-owned data and are not decryption-key providers.
@@ -40,15 +40,15 @@ Alternatively, `--update-extracted` accepts a correctly extracted matching updat
 3. On the **Graphics** tab, select the bottom **Install DLC...** button and choose the owned, matching **CUSA28763 volume-key PKGs**. Install all three for access to the complete story.
 4. Once installation finishes, **save and restart** using the overlay's **Restart to load DLC...** action.
 
-Installed volume keys are stored under `out/CUSA28763/player-content/dlc/`, **a generic directory name inherited from PS4RT's add-on installer**. This does not mean Code Fairy has conventional DLC. The installer checks title/package identity, skips duplicates and validates content before staging. **Each volume remains locked without its key, and newly installed keys take effect on restart.** All three volume-key PKGs were checked through extraction, installation and rediscovery. Gameplay QA has reached **Chapter 9 (Volume 2)**; Volume 3 is not yet comprehensively tested.
+Installed volume keys are stored under `out\CUSA28763\player-content\dlc\`, **a generic directory name inherited from PS4RT's add-on installer**. This does not mean Code Fairy has conventional DLC. The installer checks title/package identity, skips duplicates and validates content before staging. **Each volume remains locked without its key, and newly installed keys take effect on restart.** All three volume-key PKGs were checked through extraction, installation and rediscovery. Gameplay QA has reached **Chapter 9 (Volume 2)**; Volume 3 is not yet comprehensively tested.
 
 For noninteractive installation, repeat the existing generic **`--dlc-pkg`** flag once per volume key (replace these example paths with your own filenames):
 
-~~~bash
-bash Play-Game.sh --game "/absolute/path/to/CUSA28763" \
-  --dlc-pkg "/absolute/path/to/volume-1-key.pkg" \
-  --dlc-pkg "/absolute/path/to/volume-2-key.pkg" \
-  --dlc-pkg "/absolute/path/to/volume-3-key.pkg" --no-dialogs
+~~~bat
+Play-Game.bat --game "C:\path\to\CUSA28763" ^
+  --dlc-pkg "C:\path\to\volume-1-key.pkg" ^
+  --dlc-pkg "C:\path\to\volume-2-key.pkg" ^
+  --dlc-pkg "C:\path\to\volume-3-key.pkg" --no-dialogs
 ~~~
 
 ## Troubleshooting
@@ -57,7 +57,7 @@ bash Play-Game.sh --game "/absolute/path/to/CUSA28763" \
 - **Unsupported base version:** This port accepts an already-updated v01.03 extraction or the supported v01.00 → v01.03 update process.
 - **Interrupted update:** Reapply the exact matching v01.03 update. Do not delete the interrupted-update marker to bypass validation.
 - **Volume still locked:** Check that the corresponding volume unlock-key PKG is installed, then restart. PS4RT does not bypass the game's lock or provide missing keys.
-- **No graphical chooser:** Check your desktop/session; CLI options `--update-pkg`, `--dlc-pkg` and `--no-dialogs` can be used instead.
+- **No graphical chooser:** Run from a normal desktop session; CLI options `--update-pkg`, `--dlc-pkg` and `--no-dialogs` can be used instead.
 - **First launch fails:** Point `--game` to the actual extracted `CUSA28763` directory, not its parent, the PKG or `eboot.bin`.
 
-See [Running on Linux](RUNNING_LINUX.md), [Main README](../README.md) and [Local data/release layout](LINUX_BINARY_RELEASE.md). The user's own game, update and volume-key packages must not be distributed with PS4RT.
+See [Running on Windows](RUNNING_WINDOWS.md), [Main README](../README.md) and [Data layout](WINDOWS_DATA_LAYOUT.md). The user's own game, update and volume-key packages must not be distributed with PS4RT.

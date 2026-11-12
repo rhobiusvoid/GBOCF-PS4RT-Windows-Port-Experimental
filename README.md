@@ -1,11 +1,11 @@
-# Mobile Suit Gundam Battle Operation Code Fairy (PS4): PS4RT for Linux
+# Mobile Suit Gundam Battle Operation Code Fairy (PS4): PS4RT for Windows
 
-Game-specific **Windows port of a Linux x86-64 compatibility runtime** for **MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy** (PlayStation 4, **CUSA28763, v01.03**). Developed and gameplay-tested on Fedora Linux, then tested on Windows 10.
+Game-specific **Windows port** of [HekamiAeon/GBO-Code-Fairy-PS4RT](https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT), a compatibility runtime for **MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy** (PlayStation 4, **CUSA28763, v01.03**). All of the runtime design, PS4 service layers and game-specific work come from **Hekami's original Linux project**; this repository adapts it to run natively on Windows 10/11 and is not affiliated with it. See [Credits](#credits-and-licensing).
 
 PS4RT runs prepared original PS4 x86-64 game code through Windows-hosted PS4 service compatibility layers and a **shadPS4-derived Vulkan renderer**. It is **not** a general PS4 emulator, a recreation of the game, or a substitute for owning the game.
 
 <p align="center">
-  <img src="docs/images/sample.png" alt="Code Fairy running in ultrawide on Linux with FSR 4 and a 60 FPS performance overlay" width="1100">
+  <img src="docs/images/sample.png" alt="Code Fairy running in ultrawide with FSR 4 and a 60 FPS performance overlay" width="1100">
 </p>
 
 **Bring your own game and volume unlock keys.** To access Code Fairy's three episodic volumes, you need **(1) the extracted CUSA28763 game, (2) game version v01.03 in PKG format, and (3) all three volume unlock-key PKGs**. If your extracted game is already v01.03, you do not need to apply a separate update PKG. The volume keys are **not optional gameplay DLC**: they unlock the corresponding episodes already in the game, and the game will not progress past the title screen if you don't own Volume 1 at least. 
@@ -14,9 +14,13 @@ PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 
 
 ## Download and play
 
-This specific repo is a Windows port. Just download one of the releases, extract the following .7z file and run Play-Game.bat in a CMD window (or don't if you don't want to maintain logs), then follow the instructions to set the game up.
+1. Download the latest build from the **Releases** page (if it is split in parts, follow [WINDOWS-PORT.md](WINDOWS-PORT.md) to join them) and extract it to a short, writable path such as `C:\CodeFairy\`.
+2. Open a `cmd` window in that folder and run `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"`. Running from `cmd` keeps the log visible; add `> log.txt 2>&1` to save it.
+3. Follow the setup window for the v01.03 update and volume keys if needed.
 
-After successful setup, the path is remembered. For later sessions, simply run `Play-Game.bat`. Pass `--game` again if you move or replace the extracted game directory. Quote paths containing spaces. You can also pass `--dlc-pkg <path>` in order to install the Volume keys, in case you weren't able to install them during initial setup. This option is also available in the 'Insert' GUI.
+After successful setup the game path is remembered, so later sessions only need `Play-Game.bat`. Pass `--game` again if you move the game folder, and `--dlc-pkg <path>` to install volume keys later (also available from the Insert overlay).
+
+Requirements: Windows 10 1803+ (64-bit) and a Vulkan 1.3 GPU. Full guide: [Running on Windows](docs/RUNNING_WINDOWS.md).
 
 ### Required v01.03 game version and episodic volume keys
 
@@ -44,46 +48,46 @@ Available features include:
 - **Local achievements:** The game triggers trophy unlocks; the PS4RT overlay saves and displays progress, earned timestamps, icons and hidden entries. This is **not PSN trophy synchronization**, and previously completed objectives are not guaranteed to unlock retroactively.
 - **Volume key installation:** Use the overlay's existing **Install DLC...** button for the three volume unlock-key PKGs. The button retains its generic name because the keys use the same PS4 add-on package mechanism; **no separate DLC is required**. Save and restart after installing keys so the game recognizes the unlocked volumes.
 
-The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide choices; not every menu option has a launcher flag. See [Running on Linux](docs/RUNNING_LINUX.md) for details.
+The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide choices; not every menu option has a launcher flag. See [Running on Windows](docs/RUNNING_WINDOWS.md) for details.
 
 ## Current compatibility status
 
-**Playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X (using the original Linux build, by Hakemi).** Gameplay QA has covered the tutorial, story missions through Chapter 9, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. **Volume 3 has not been fully gameplay-tested.** The displayed 60 FPS/FSR 4 screenshot documents a particular tested configuration, not a performance guarantee for other GPUs.
+**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart (0.3 Alpha). Chapters beyond that, Volume 2/3 and other GPUs are untested on Windows, and the port should be treated as an alpha.
 
-**Windows 10 was able to go up to Chapter 2 before a trophy crash that was fixed in 0.2.** The rest of the game should be playable from start to finish with no worries.
+**Original Linux build (by Hekami):** playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X, covering the tutorial, story missions, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. Volume 3 has not been fully gameplay-tested. Screenshots document a particular configuration, not a performance guarantee.
 
 Known limitations and notes:
 
 - **Ultrawide is experimental.** Some camera-driven HUD elements, may appear misplaced or flicker. Reproduce at 16:9 before reporting a widescreen-specific regression. Cutscenes and pre-recorded videos remain at 16:9 aspect ratio as they were designed for that size and can look distorted otherwise. 
 - **FSR 4 v07** needs compatible Vulkan GPU features; use FSR 3.1, FSR 1 or Off where unsupported.
 - **30 FPS mode** is intended for lower-power hardware. The runtime may lift the limiter for 60 FPS video playback to avoid the videos playing at half speed and during dialogue as they are less intensive.
-- FPS depends heavily on GPU power, internal resolution, graphics-quality preset and shader/cache state. **Steam Deck/SteamOS performance is not yet guaranteed.**
+- FPS depends heavily on GPU power, internal resolution, graphics-quality preset and shader/cache state.
+- **Older GPUs (Pascal and earlier) may show model/LOD glitches** (missing parts, point artifacts) because PS4 shader features such as barycentric interpolation and some texture formats are unavailable. Newer GPUs are expected to be better; reports welcome.
+- **Backups:** the `savedata-backups` snapshot copy is best-effort; saving itself does not depend on it.
+- **Known deadlock risk** in the model manager (Chapters 1, 3, 5 per Hekami); see [WINDOWS-MUTEX-NOTES.md](docs/WINDOWS-MUTEX-NOTES.md).
+- **DLSS is not available** in Windows builds (FSR 1/3.1/4 are).
 - Version **v01.03 / CUSA28763** is the tested and required title combination. Other title IDs or executable versions are unsupported.
 
 Please report reproducible defects on the **published project's GitHub Issues page** with your game version, mission/chapter, GPU/driver, resolution, graphics preset, upscaler and reproduction steps. For visual problems, also include whether they reproduce in 16:9 with FSR Off.
 
 ## Build from source (developers)
 
-Players should use a portable release, not a developer build. For Fedora/source builds install a C/C++ toolchain, Python 3, CMake, Ninja, pkg-config and development dependencies for Vulkan, SDL3, FFmpeg, glslang, Boost, fmt, xxHash, Zydis, X11, **Crypto++ and zlib** (for native PKG handling).
+Players should use a release. The Windows binaries are **cross-compiled from Linux** with clang and MinGW-w64; see [docs/windows-build/NOTES.md](docs/windows-build/NOTES.md), `docs/windows-build/link.sh` and `docs/windows-build/toolchain-clang-mingw.cmake`. There is no native Windows build script yet.
 
-~~~bash
-PS4RT_LTO=OFF bash build.sh --test
-bash run.sh --game "/absolute/path/to/CUSA28763"
-~~~
-
-For a portable Ubuntu 22.04 / glibc 2.35 release build, follow [Portable build tools](packaging/linux/README.md) and [Distribution guide](docs/DISTRIBUTING_LINUX.md). **No release is published automatically** by those scripts.
-
-Local generated state resides under `out/CUSA28763/`, including prepared game code, saves, local trophies, caches and installed volume keys. **Never publish or commit `out/`.** See [Linux binary and data layout](docs/LINUX_BINARY_RELEASE.md).
+Generated state lives under `out\CUSA28763\` (prepared game code, saves, trophies, caches, volume keys). **Never publish or commit `out\`.** See [Windows data layout](docs/WINDOWS_DATA_LAYOUT.md).
 
 ## Documentation
 
-- [Running on Linux](docs/RUNNING_LINUX.md)
-- [Linux binary release and local data](docs/LINUX_BINARY_RELEASE.md)
-- [Player update and volume-key setup](docs/PLAYER_PKG_SETUP.md)
-- [Developer distribution and release checklist](docs/DISTRIBUTING_LINUX.md)
+- [Running on Windows](docs/RUNNING_WINDOWS.md)
+- [Update and volume-key setup](docs/PLAYER_PKG_SETUP.md)
+- [Windows package and data layout](docs/WINDOWS_DATA_LAYOUT.md)
+- [Mutex/deadlock notes](docs/WINDOWS-MUTEX-NOTES.md)
+- [Cross-build notes](docs/windows-build/NOTES.md)
 - [Upstream source credits and licensing](docs/UPSTREAM_CREDITS.md)
 
 ## Credits and licensing
+
+**Original project:** huge thanks to **[HekamiAeon](https://github.com/HekamiAeon)** for [GBO-Code-Fairy-PS4RT](https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT), the Linux runtime this port is built on (GPL-2.0-or-later). Without that work there would be nothing to port.
 
 PS4RT adapts open-source compatibility runtimes and renderer work from **gow3_pc**, **bloodborne_pc**, **shadPS4** and related contributors. The integrated PKG extractor is adapted from **AzaharPlus/shadPS4Plus**. Local trophy handling also incorporates work credited in `scripts/trophy_crypto.py`. REA and Ghidra were used for analysis, not bundled as runtime dependencies.
 

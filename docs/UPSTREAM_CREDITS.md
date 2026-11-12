@@ -7,6 +7,8 @@ contributors remain credited here even where their game-specific features were r
 
 ## Runtime lineage
 
+- [HekamiAeon / GBO-Code-Fairy-PS4RT](https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT): the original Code Fairy Linux runtime (game-specific patches, service layers, launcher, menu and achievements). This Windows port is derived directly from it.
+
 - [Felipe Prado / gow3_pc](https://github.com/FelipePrado0/gow3_pc): original
   God of War III PC compatibility-runtime implementation from which the runtime was adapted.
 - [deadinside28 / bloodborne_pc](https://github.com/deadinside28/bloodborne_pc):

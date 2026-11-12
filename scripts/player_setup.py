@@ -116,8 +116,8 @@ def choose_setup(root: Path, kind: str) -> list[Path]:
         executable = _setup_executable(root)
         if not executable.is_file() or not os.access(executable, os.X_OK):
             raise SetupError("MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy setup interface is missing. "
-                             "Build the port with bash build.sh, or use the "
-                             "packaged portable release.")
+                             "Use the packaged Windows release, which includes "
+                             "bin\\ps4rt-setup.exe.")
         result = subprocess.run([str(executable), "--mode", kind],
                                 capture_output=True, text=True, check=False)
         if result.returncode == 1:

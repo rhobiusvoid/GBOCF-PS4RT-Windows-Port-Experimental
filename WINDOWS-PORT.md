@@ -1,13 +1,13 @@
-# Windows port (experimental, untested on real Windows)
+# Windows port (0.3 Alpha, experimental)
 
-Unofficial Windows port of https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT (GPL-2.0-or-later; upstream
-history is not included here, this is a snapshot of upstream plus the port changes).
+Unofficial Windows port of https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT by HekamiAeon (GPL-2.0-or-later; upstream
+history is not included here, this is a snapshot of upstream plus the port changes). All credit for the original runtime goes to Hekami.
 
 - Cross-compiled on Linux with clang + MinGW-w64 (UCRT/msvcrt, libstdc++, `-femulated-tls`).
 - New: `src/compat_win.[ch]`, `src/compat_win_mem.h` (POSIX shims, runtime-resolved VirtualAlloc2/MapViewOfFile3, setjmp/longjmp, 1 ms timer).
 - Launcher scripts ported (`Play-Game.bat`, `scripts/*.py`).
 - DLSS disabled on Windows (bridge header missing upstream); FSR 1/3.1/4 kept.
-- See `docs/WINDOWS-MUTEX-NOTES.md` for the deadlock-risk review.
+- See `docs/WINDOWS-MUTEX-NOTES.md` and `docs/RUNNING_WINDOWS.md` for the deadlock-risk review.
 - Prebuilt package: see Releases. Requires Windows 10 1803+, Vulkan 1.3 GPU. Bring your own game files and keys.
 
 ## Download and run
