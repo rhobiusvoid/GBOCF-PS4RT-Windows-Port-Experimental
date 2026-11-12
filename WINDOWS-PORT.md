@@ -11,10 +11,10 @@ history is not included here, this is a snapshot of upstream plus the port chang
 - Prebuilt package: see Releases. Requires Windows 10 1803+, Vulkan 1.3 GPU. Bring your own game files and keys.
 
 ## Download and run
-1. Get all five `CodeFairy-PS4RT-Windows.zip.partNN.bin` files from the Releases page into one folder.
+1. Get all four `CodeFairy-0.3-Alpha.zip.partNN.bin` files from the Releases page into one folder.
 2. Join them in cmd:
-   `copy /b CodeFairy-PS4RT-Windows.zip.part00.bin+CodeFairy-PS4RT-Windows.zip.part01.bin+CodeFairy-PS4RT-Windows.zip.part02.bin+CodeFairy-PS4RT-Windows.zip.part03.bin+CodeFairy-PS4RT-Windows.zip.part04.bin CodeFairy.zip`
-   The result must be exactly 97,537,525 bytes.
+   `copy /b CodeFairy-0.3-Alpha.zip.part00.bin+CodeFairy-0.3-Alpha.zip.part01.bin+CodeFairy-0.3-Alpha.zip.part02.bin+CodeFairy-0.3-Alpha.zip.part03.bin CodeFairy-0.3-Alpha.zip`
+   The result must be exactly 89,405,036 bytes (SHA-256 cd08c500b82686221121aa0bfe408743cf7a9b63497eb200849b2519dc85bbdb).
 3. Unzip, then run `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"` from a cmd window.
 4. Keep the v01.03 update PKG and the three volume-key PKGs as `.pkg` files; install them via the setup window or **Install DLC...** in the overlay (Insert key).
 
