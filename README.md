@@ -18,7 +18,7 @@ PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 
 2. Open a `cmd` window in that folder and run `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"`. Running from `cmd` keeps the log visible; add `> log.txt 2>&1` to save it.
 3. Follow the setup window for the v01.03 update and volume keys if needed.
 
-After successful setup the game path is remembered, so later sessions only need `Play-Game.bat`. Pass `--game` again if you move the game folder, and `--dlc-pkg <path>` to install volume keys later (also available from the Insert overlay).
+After successful setup the game path is remembered, so later sessions only need `Play-Game.bat`. Pass `--game` again if you move the game folder, and `--dlc-pkg <path>` to install volume keys later (also available from the Insert overlay). If you are going to install DLC keys seperately through CLI, make sure to include the `.pkg` extension.
 
 Requirements: Windows 10 1803+ (64-bit) and a Vulkan 1.3 GPU. Full guide: [Running on Windows](docs/RUNNING_WINDOWS.md).
 
