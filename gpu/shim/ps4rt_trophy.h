@@ -28,19 +28,27 @@ typedef struct {
              unlocked_bronze, progress_percentage;
 } Ps4RtTrophyGameData;
 
+/* These are stored in the guest import table and called by original PS4 code, which uses the
+ * System V convention. On Linux that is the host default; on Windows it must be explicit or the
+ * arguments arrive in the wrong registers (a trophy unlock then wrote through a garbage pointer). */
+#if defined(_WIN32)
+#define PS4RT_GUEST_ABI __attribute__((sysv_abi))
+#else
+#define PS4RT_GUEST_ABI
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
-int32_t ps4rt_trophy_create_context(int32_t*, int32_t, uint32_t, uint64_t);
-int32_t ps4rt_trophy_create_handle(int32_t*);
-int32_t ps4rt_trophy_register(int32_t, int32_t, uint64_t);
-int32_t ps4rt_trophy_unlock(int32_t, int32_t, int32_t, int32_t*);
-int32_t ps4rt_trophy_game_info(int32_t, int32_t, Ps4RtTrophyGameDetails*, Ps4RtTrophyGameData*);
-int32_t ps4rt_trophy_info(int32_t, int32_t, int32_t, Ps4RtTrophyDetails*, Ps4RtTrophyData*);
-int32_t ps4rt_trophy_unlock_state(int32_t, int32_t, uint32_t*, uint32_t*);
-int32_t ps4rt_trophy_abort(int32_t);
-int32_t ps4rt_trophy_destroy_handle(int32_t);
-int32_t ps4rt_trophy_destroy_context(int32_t);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_create_context(int32_t*, int32_t, uint32_t, uint64_t);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_create_handle(int32_t*);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_register(int32_t, int32_t, uint64_t);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_unlock(int32_t, int32_t, int32_t, int32_t*);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_game_info(int32_t, int32_t, Ps4RtTrophyGameDetails*, Ps4RtTrophyGameData*);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_info(int32_t, int32_t, int32_t, Ps4RtTrophyDetails*, Ps4RtTrophyData*);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_unlock_state(int32_t, int32_t, uint32_t*, uint32_t*);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_abort(int32_t);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_destroy_handle(int32_t);
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_destroy_context(int32_t);
 #ifdef __cplusplus
 }
 #endif

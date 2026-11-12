@@ -432,16 +432,16 @@ Service& Get() {
 // Keep host exceptions out of original game code (including allocation failure).
 #define TROPHY_CALL(expr) try { return (expr); } catch (...) { return static_cast<int32_t>(0x80551603u); }
 extern "C" {
-int32_t ps4rt_trophy_create_context(int32_t* c, int32_t u, uint32_t l, uint64_t o) { TROPHY_CALL(Ps4RtAchievements::Get().CreateContext(c,u,l,o)); }
-int32_t ps4rt_trophy_create_handle(int32_t* h) { TROPHY_CALL(Ps4RtAchievements::Get().CreateHandle(h)); }
-int32_t ps4rt_trophy_register(int32_t c, int32_t h, uint64_t o) { TROPHY_CALL(Ps4RtAchievements::Get().Register(c,h,o)); }
-int32_t ps4rt_trophy_unlock(int32_t c, int32_t h, int32_t id, int32_t* p) { TROPHY_CALL(Ps4RtAchievements::Get().Unlock(c,h,id,p)); }
-int32_t ps4rt_trophy_game_info(int32_t c, int32_t h, Ps4RtTrophyGameDetails* d, Ps4RtTrophyGameData* a) { TROPHY_CALL(Ps4RtAchievements::Get().GameInfo(c,h,d,a)); }
-int32_t ps4rt_trophy_info(int32_t c, int32_t h, int32_t id, Ps4RtTrophyDetails* d, Ps4RtTrophyData* a) { TROPHY_CALL(Ps4RtAchievements::Get().TrophyInfo(c,h,id,d,a)); }
-int32_t ps4rt_trophy_unlock_state(int32_t c, int32_t h, uint32_t* f, uint32_t* n) { TROPHY_CALL(Ps4RtAchievements::Get().UnlockState(c,h,f,n)); }
-int32_t ps4rt_trophy_abort(int32_t h) { TROPHY_CALL(Ps4RtAchievements::Get().Abort(h)); }
-int32_t ps4rt_trophy_destroy_handle(int32_t h) { TROPHY_CALL(Ps4RtAchievements::Get().DestroyHandle(h)); }
-int32_t ps4rt_trophy_destroy_context(int32_t c) { TROPHY_CALL(Ps4RtAchievements::Get().DestroyContext(c)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_create_context(int32_t* c, int32_t u, uint32_t l, uint64_t o) { TROPHY_CALL(Ps4RtAchievements::Get().CreateContext(c,u,l,o)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_create_handle(int32_t* h) { TROPHY_CALL(Ps4RtAchievements::Get().CreateHandle(h)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_register(int32_t c, int32_t h, uint64_t o) { TROPHY_CALL(Ps4RtAchievements::Get().Register(c,h,o)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_unlock(int32_t c, int32_t h, int32_t id, int32_t* p) { TROPHY_CALL(Ps4RtAchievements::Get().Unlock(c,h,id,p)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_game_info(int32_t c, int32_t h, Ps4RtTrophyGameDetails* d, Ps4RtTrophyGameData* a) { TROPHY_CALL(Ps4RtAchievements::Get().GameInfo(c,h,d,a)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_info(int32_t c, int32_t h, int32_t id, Ps4RtTrophyDetails* d, Ps4RtTrophyData* a) { TROPHY_CALL(Ps4RtAchievements::Get().TrophyInfo(c,h,id,d,a)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_unlock_state(int32_t c, int32_t h, uint32_t* f, uint32_t* n) { TROPHY_CALL(Ps4RtAchievements::Get().UnlockState(c,h,f,n)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_abort(int32_t h) { TROPHY_CALL(Ps4RtAchievements::Get().Abort(h)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_destroy_handle(int32_t h) { TROPHY_CALL(Ps4RtAchievements::Get().DestroyHandle(h)); }
+int32_t PS4RT_GUEST_ABI ps4rt_trophy_destroy_context(int32_t c) { TROPHY_CALL(Ps4RtAchievements::Get().DestroyContext(c)); }
 }
 static_assert(sizeof(Ps4RtTrophyData) == 24 && sizeof(Ps4RtTrophyDetails) == 1176 &&
               sizeof(Ps4RtTrophyGameDetails) == 1184 && sizeof(Ps4RtTrophyGameData) == 32);
