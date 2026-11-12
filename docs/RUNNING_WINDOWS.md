@@ -11,7 +11,7 @@ them. Releases contain no game data, firmware, PKGs or saves.
 - Windows 10 version 1803 or newer, 64-bit.
 - A GPU with Vulkan 1.3 drivers (recent NVIDIA, AMD or Intel drivers). FSR 4 needs newer GPUs;
   use FSR 3.1, FSR 1 or Off otherwise.
-- About 20 GB free disk space for the extracted game, plus space for caches under `out\`.
+- About 74 GB free disk space for the extracted game, plus space for caches under `out\`.
 - No Python, compiler or extra runtimes: the release bundles everything.
 
 ## 1. Get the package
