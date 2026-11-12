@@ -63,6 +63,7 @@ Known limitations and notes:
 - **30 FPS mode** is intended for lower-power hardware. The runtime may lift the limiter for 60 FPS video playback to avoid the videos playing at half speed and during dialogue as they are less intensive.
 - FPS depends heavily on GPU power, internal resolution, graphics-quality preset and shader/cache state.
 - **Older GPUs (Pascal and earlier) may show model/LOD glitches** (missing parts, point artifacts) because PS4 shader features such as barycentric interpolation and some texture formats are unavailable. Newer GPUs are expected to be better; reports welcome.
+- **CPUs older than Coffee Lake (or equivalent) may be missing required functions** Another user tested with an i5-3470, which is missing MOVBE, BMI1, and LZCNT instructions. Your mileage may vary. If your CPU is too old, there's no real chance for support.
 - **Backups:** the `savedata-backups` snapshot copy is best-effort; saving itself does not depend on it.
 - **Known deadlock risk** in the model manager (Chapters 1, 3, 5 per Hekami); see [WINDOWS-MUTEX-NOTES.md](docs/WINDOWS-MUTEX-NOTES.md).
 - **DLSS is not available** in Windows builds (FSR 1/3.1/4 are).
