@@ -32,19 +32,21 @@ def _clear_high_entropy_va(directory):
         return
     for dll in sorted(Path(directory).glob('*.dll')):
         try:
-            with open(dll, 'r+b') as stream:
+            with open(dll, 'rb') as stream:
                 head = stream.read(0x400)
-                if head[:2] != b'MZ':
-                    continue
-                pe = int.from_bytes(head[0x3c:0x40], 'little')
-                if pe + 0x60 > len(head) or head[pe:pe + 4] != b'PE\0\0':
-                    continue
-                optional = pe + 24
-                if int.from_bytes(head[optional:optional + 2], 'little') != 0x20b:  # PE32+
-                    continue
-                field = optional + 70
-                flags = int.from_bytes(head[field:field + 2], 'little')
-                if flags & 0x20:
+            if head[:2] != b'MZ':
+                continue
+            pe = int.from_bytes(head[0x3c:0x40], 'little')
+            if pe + 0x60 > len(head) or head[pe:pe + 4] != b'PE\0\0':
+                continue
+            optional = pe + 24
+            if int.from_bytes(head[optional:optional + 2], 'little') != 0x20b:  # PE32+
+                continue
+            field = optional + 70
+            flags = int.from_bytes(head[field:field + 2], 'little')
+            if flags & 0x20:
+                # Only now open for writing; DLLs already loaded by a running copy stay read-only.
+                with open(dll, 'r+b') as stream:
                     stream.seek(field)
                     stream.write((flags & ~0x20).to_bytes(2, 'little'))
         except OSError as error:

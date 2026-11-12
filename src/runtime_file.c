@@ -190,6 +190,15 @@ static File *get(int fd) {
     return &files[fd];
 }
 
+/* Save-data I/O trace (first 400 events): a Windows save-load problem needs to be seen, not guessed. */
+static void save_trace(const char *guest,const char *what,long long a,long long b) {
+    static unsigned count;
+    if (!guest || strncmp(guest,"/savedata",9)) return;
+    if (__atomic_fetch_add(&count,1,__ATOMIC_RELAXED)>=400) return;
+    printf("SaveIO: %s %s %lld %lld\n",what,guest,a,b);
+}
+static const char *fd_path(int fd) { File *f=get(fd); return f ? f->path : NULL; }
+
 /* Game mounts (including linked mod overlays) are read-only. Saves use other mounts. */
 static int game_path(const char *p) {
     if (!p || !*p) return 0;
@@ -220,6 +229,7 @@ static int64_t do_open(const char *guest,int flags,int mode) {
         host=open(path,host_flags(flags)&~O_DIRECTORY,_S_IREAD|_S_IWRITE);
         if (host<0) {
             e=errno;
+            save_trace(guest,"open-failed",flags,e);
             if (e==ENOENT) { ++missing; printf("Runtime: open(%s) -> not found\n",guest); }
             return -e;
         }
@@ -246,6 +256,7 @@ static int64_t do_open(const char *guest,int flags,int mode) {
     ++opens;
     pthread_mutex_unlock(&lock);
     PS4RT_LOADING_NOTE("file-open fd=%d guest=%s", fd, guest);
+    save_trace(guest,"open",flags,fd);
     return fd;
 }
 static int64_t do_close(int fd) {
@@ -253,6 +264,7 @@ static int64_t do_close(int fd) {
     pthread_mutex_lock(&lock);
     File *f=get(fd);
     if (!f) { pthread_mutex_unlock(&lock); return -EBADF; }
+    save_trace(f->path,"close",fd,0);
     if (f->host>=0) close(f->host);
     free_listing(f->dir);
     *f=(File){0};
@@ -329,6 +341,7 @@ static int64_t do_read(int fd,void *buffer,uint64_t size) {
     if (h<0) return -EBADF;
     PS4RT_LOADING_EVENT(PS4RT_LOAD_READ_BEGIN, fd, size);
     ssize_t n=read_to_guest(h,buffer,size,0,0);
+    save_trace(fd_path(fd),"read",(long long)size,(long long)n);
     PS4RT_LOADING_EVENT(PS4RT_LOAD_READ_END, fd, n < 0 ? -errno : n);
     if (n < 0) PS4RT_LOADING_NOTE("file-read-failed fd=%d buffer=%p size=%llu error=%d",
                                 fd, buffer, (unsigned long long)size, errno);
@@ -341,6 +354,7 @@ static int64_t do_pread(int fd,void *buffer,uint64_t size,int64_t offset) {
     if (h<0) return -EBADF;
     PS4RT_LOADING_EVENT(PS4RT_LOAD_READ_BEGIN, fd, size);
     ssize_t n=read_to_guest(h,buffer,size,offset,1);
+    save_trace(fd_path(fd),"pread",(long long)size,(long long)n);
     PS4RT_LOADING_EVENT(PS4RT_LOAD_READ_END, fd, n < 0 ? -errno : n);
     if (n < 0) PS4RT_LOADING_NOTE("file-pread-failed fd=%d buffer=%p size=%llu offset=%lld error=%d",
                                 fd, buffer, (unsigned long long)size, (long long)offset, errno);
@@ -352,6 +366,7 @@ static int64_t do_write(int fd,const void *buffer,uint64_t size) {
     int h=host_fd(fd);
     if (h<0) return -EBADF;
     ssize_t n=host_write(h,buffer,size);
+    save_trace(fd_path(fd),"write",(long long)size,n<0 ? -(long long)errno : (long long)n);
     if ((fd == 1 || fd == 2) && n > 0) PS4RT_LOADING_TEXT(buffer, (size_t)n);
     if (n<0) return -errno;
     __atomic_add_fetch(&writes,1,__ATOMIC_RELAXED);
@@ -361,6 +376,7 @@ static int64_t do_pwrite(int fd,const void *buffer,uint64_t size,int64_t offset)
     int h=host_fd(fd);
     if (h<0) return -EBADF;
     ssize_t n=pwrite(h,buffer,size,offset);
+    save_trace(fd_path(fd),"pwrite",(long long)size,n<0 ? -(long long)errno : (long long)n);
     return n<0 ? -errno : n;
 }
 static int64_t do_lseek(int fd,int64_t offset,int whence) {
@@ -398,7 +414,8 @@ static int64_t do_stat(const char *guest,GuestStat *out) {
     int e=translate(guest,path,sizeof(path));
     if (e) return -e;
     if (!out) return -EFAULT;
-    if (host_stat(path,&s)) return -errno;
+    if (host_stat(path,&s)) { save_trace(guest,"stat-failed",errno,0); return -errno; }
+    save_trace(guest,"stat",(long long)s.st_size,(long long)s.st_mode);
     convert_stat(&s,out); return 0;
 }
 static int64_t do_getdents(int fd,char *buffer,uint64_t size,int64_t *basep) {
