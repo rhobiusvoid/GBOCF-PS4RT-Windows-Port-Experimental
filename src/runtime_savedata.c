@@ -153,7 +153,7 @@ static ABI int32_t save_get_progress(float *out) {
     pthread_mutex_lock(&lock); *out=backup_progress; pthread_mutex_unlock(&lock);
     return 0;
 }
-static int32_t mount(int32_t user, const char *title, const DirName *dir, uint32_t mode, MountResult *result) {
+static int32_t mount_impl(int32_t user, const char *title, const DirName *dir, uint32_t mode, MountResult *result) {
     if (!initialized) return ERR_NOT_INITIALIZED;
     if (user<0) return ERR_INVALID_USER;
     if (!dir || !result || !valid_name(dir->data,sizeof(dir->data))) return ERR_PARAMETER;
@@ -189,6 +189,12 @@ static int32_t mount(int32_t user, const char *title, const DirName *dir, uint32
            exists ? "existing" : "created",(mode & MODE_RDONLY) ? ", read-only" : "");
     return 0;
 }
+static int32_t mount(int32_t user, const char *title, const DirName *dir, uint32_t mode, MountResult *result) {
+    int32_t r=mount_impl(user,title,dir,mode,result);
+    if (r) printf("Runtime: SaveData mount '%s' mode=0x%x failed: 0x%x\n",dir ? dir->data : "?",mode,(unsigned)r);
+    else printf("Runtime: SaveData mount '%s' mode=0x%x ok\n",dir->data,mode);
+    return r;
+}
 static ABI int32_t save_mount(const Mount1 *m, MountResult *result) {
     if (!m) return ERR_PARAMETER;
     return mount(m->user,m->title ? m->title->data : NULL,m->dir,m->mode,result);
@@ -203,6 +209,7 @@ static int slot_of(const MountPoint *point) {
     return slot>=0 && slot<SLOTS && slots[slot].used ? slot : -1;
 }
 static ABI int32_t save_umount(const MountPoint *point) {
+    printf("Runtime: SaveData umount %s\n",point ? point->data : "?");
     if (!initialized) return ERR_NOT_INITIALIZED;
     pthread_mutex_lock(&lock);
     int slot=slot_of(point);
@@ -259,6 +266,7 @@ static int backup_tree(int source,int dest,unsigned depth,unsigned char *buffer)
     return result || fsync(dest) ? -1 : 0;
 }
 static ABI int32_t save_umount_backup(const MountPoint *point) {
+    printf("Runtime: SaveData umount-with-backup %s\n",point ? point->data : "?");
     if (!initialized) return ERR_NOT_INITIALIZED;
     if (!point) return ERR_PARAMETER;
     pthread_mutex_lock(&lock);
@@ -356,6 +364,7 @@ static int backup_tree_path(const char *source,const char *dest,unsigned depth,u
     return result;
 }
 static ABI int32_t save_umount_backup(const MountPoint *point) {
+    printf("Runtime: SaveData umount-with-backup %s\n",point ? point->data : "?");
     if (!initialized) return ERR_NOT_INITIALIZED;
     if (!point) return ERR_PARAMETER;
     pthread_mutex_lock(&lock);
@@ -433,6 +442,7 @@ static ABI int32_t save_get_param(const MountPoint *point, uint32_t type, void *
     return 0;
 }
 static ABI int32_t save_set_param(const MountPoint *point, uint32_t type, const void *buffer, uint64_t size) {
+    printf("Runtime: SaveData setparam %s type=%u size=%llu\n",point ? point->data : "?",type,(unsigned long long)size);
     if (!initialized) return ERR_NOT_INITIALIZED;
     if (!buffer) return ERR_PARAMETER;
     pthread_mutex_lock(&lock);
@@ -570,7 +580,7 @@ static int32_t memory_io(void *buffer, uint64_t size, int64_t offset, int write)
     return r;
 }
 static ABI int32_t memory_get(int32_t user, void *buffer, uint64_t size, int64_t offset) { (void)user; return memory_io(buffer,size,offset,0); }
-static ABI int32_t memory_set(int32_t user, void *buffer, uint64_t size, int64_t offset) { (void)user; return memory_io(buffer,size,offset,1); }
+static ABI int32_t memory_set(int32_t user, void *buffer, uint64_t size, int64_t offset) { (void)user; printf("Runtime: SaveData memory set size=%llu off=%lld\n",(unsigned long long)size,(long long)offset); return memory_io(buffer,size,offset,1); }
 
 static const RuntimeExport exports[]={
     {"sceSaveDataInitialize",save_initialize}, {"sceSaveDataInitialize2",save_initialize},
