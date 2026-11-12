@@ -325,11 +325,13 @@ done:
  * openat() do not exist here, so reparse points (symlinks, junctions) are refused explicitly
  * instead of being opened without following. The snapshot is built in "incomplete-<suffix>" and
  * renamed to "backup-<suffix>" only after every file has been flushed to disk. */
+static char backup_fail[300];
+#define BFAIL(what,path) do { snprintf(backup_fail,sizeof(backup_fail),"%s %s (errno=%d, win32=%lu)",what,path,errno,(unsigned long)GetLastError()); } while (0)
 static int backup_tree_path(const char *source,const char *dest,unsigned depth,unsigned char *buffer) {
     if (depth>32) return -1;
-    if (mkdir(dest,0700) && errno!=EEXIST) return -1;
+    if (mkdir(dest,0700) && errno!=EEXIST) { BFAIL("mkdir",dest); return -1; }
     DIR *dir=opendir(source);
-    if (!dir) return -1;
+    if (!dir) { BFAIL("opendir",source); return -1; }
     int result=0;
     for (;;) {
         errno=0;
@@ -342,20 +344,22 @@ static int backup_tree_path(const char *source,const char *dest,unsigned depth,u
         int b=snprintf(to,sizeof(to),"%s/%s",dest,name);
         if (a<0 || b<0 || (size_t)a>=sizeof(from) || (size_t)b>=sizeof(to)) { result=-1; break; }
         DWORD attributes=GetFileAttributesA(from);
-        if (attributes==INVALID_FILE_ATTRIBUTES || (attributes&FILE_ATTRIBUTE_REPARSE_POINT)) { result=-1; break; }
+        if (attributes==INVALID_FILE_ATTRIBUTES || (attributes&FILE_ATTRIBUTE_REPARSE_POINT)) { BFAIL("attributes",from); result=-1; break; }
         if (attributes&FILE_ATTRIBUTE_DIRECTORY) {
             if (backup_tree_path(from,to,depth+1,buffer)) { result=-1; break; }
             continue;
         }
         FILE *in=fopen(from,"rb");
-        FILE *out=in ? fopen(to,"wbx") : NULL;
-        if (!in || !out) result=-1;
+        int out_fd=in ? open(to,O_WRONLY|O_CREAT|O_EXCL|O_BINARY,_S_IREAD|_S_IWRITE) : -1;
+        FILE *out=out_fd>=0 ? fdopen(out_fd,"wb") : NULL;
+        if (!in || !out) { BFAIL(in ? "create" : "open",in ? to : from); result=-1; }
+        if (out_fd>=0 && !out) close(out_fd);
         while (!result) {
             size_t n=fread(buffer,1,65536,in);
             if (n && fwrite(buffer,1,n,out)!=n) { result=-1; break; }
             if (n<65536) { if (ferror(in)) result=-1; break; }
         }
-        if (!result && (fflush(out) || _commit(_fileno(out)))) result=-1;
+        if (!result && (fflush(out) || _commit(_fileno(out)))) { BFAIL("flush",to); result=-1; }
         if (in) fclose(in);
         if (out && fclose(out)) result=-1;
         if (result) break;
@@ -394,6 +398,7 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
     why="mkdir-snapshot";
     if (mkdir(snapshot,0700)) goto done;
     why="copy";
+    backup_fail[0]=0;
     const char *sources[]={slots[slot].host,slots[slot].meta};
     const char *names[]={"data","sce_sys"};
     result=0;
@@ -407,14 +412,14 @@ static ABI int32_t save_umount_backup(const MountPoint *point) {
         int t=snprintf(target,sizeof(target),"%s/%s",snapshot,names[i]);
         if (t<0 || (size_t)t>=sizeof(target) || backup_tree_path(sources[i],target,0,buffer)) result=-1;
     }
-    why="rename";
+    if (!result) why="rename";
     if (!result && rename(snapshot,complete)==0) {
         printf("Runtime: save backup completed: %s\n",complete);
     } else if (!result) result=-1;
 done:
     /* The backup is best-effort: the save itself is already on disk, so the mount is always released
      * (a mount left behind makes every later mount of this save fail with ERR_BAD_MOUNTED). */
-    if (result) printf("Runtime: save backup skipped at %s (errno=%d) host=%s user=%s\n",why,errno,slots[slot].host,user);
+    if (result) printf("Runtime: save backup skipped at %s: %s (errno=%d, win32=%lu) snapshot=%s\n",why,backup_fail,errno,(unsigned long)GetLastError(),snapshot);
     runtime_file_unmount(point->data); slots[slot].used=0;
     backup_progress=1;
     free(buffer);
