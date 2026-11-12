@@ -19,6 +19,9 @@
 #ifndef _WIN32
 #include <ftw.h>
 #include <fcntl.h>
+#else
+#include <windows.h>
+#include <io.h>
 #endif
 
 #define ERR_PARAMETER ((int32_t)0x809F0000)
@@ -309,6 +312,98 @@ done:
     pthread_mutex_unlock(&lock);
     return result ? ERR_INTERNAL : 0;
 }
+#else
+/* Windows: the same snapshot semantics with path-based copies. Directory descriptors and
+ * openat() do not exist here, so reparse points (symlinks, junctions) are refused explicitly
+ * instead of being opened without following. The snapshot is built in "incomplete-<suffix>" and
+ * renamed to "backup-<suffix>" only after every file has been flushed to disk. */
+static int backup_tree_path(const char *source,const char *dest,unsigned depth,unsigned char *buffer) {
+    if (depth>32) return -1;
+    if (mkdir(dest,0700) && errno!=EEXIST) return -1;
+    DIR *dir=opendir(source);
+    if (!dir) return -1;
+    int result=0;
+    for (;;) {
+        errno=0;
+        struct dirent *entry=readdir(dir);
+        if (!entry) { if (errno) result=-1; break; }
+        const char *name=entry->d_name;
+        if (!strcmp(name,".") || !strcmp(name,"..")) continue;
+        char from[900],to[900];
+        int a=snprintf(from,sizeof(from),"%s/%s",source,name);
+        int b=snprintf(to,sizeof(to),"%s/%s",dest,name);
+        if (a<0 || b<0 || (size_t)a>=sizeof(from) || (size_t)b>=sizeof(to)) { result=-1; break; }
+        DWORD attributes=GetFileAttributesA(from);
+        if (attributes==INVALID_FILE_ATTRIBUTES || (attributes&FILE_ATTRIBUTE_REPARSE_POINT)) { result=-1; break; }
+        if (attributes&FILE_ATTRIBUTE_DIRECTORY) {
+            if (backup_tree_path(from,to,depth+1,buffer)) { result=-1; break; }
+            continue;
+        }
+        FILE *in=fopen(from,"rb");
+        FILE *out=in ? fopen(to,"wbx") : NULL;
+        if (!in || !out) result=-1;
+        while (!result) {
+            size_t n=fread(buffer,1,65536,in);
+            if (n && fwrite(buffer,1,n,out)!=n) { result=-1; break; }
+            if (n<65536) { if (ferror(in)) result=-1; break; }
+        }
+        if (!result && (fflush(out) || _commit(_fileno(out)))) result=-1;
+        if (in) fclose(in);
+        if (out && fclose(out)) result=-1;
+        if (result) break;
+    }
+    closedir(dir);
+    return result;
+}
+static ABI int32_t save_umount_backup(const MountPoint *point) {
+    if (!initialized) return ERR_NOT_INITIALIZED;
+    if (!point) return ERR_PARAMETER;
+    pthread_mutex_lock(&lock);
+    int slot=slot_of(point);
+    if (slot<0) { pthread_mutex_unlock(&lock); return ERR_NOT_FOUND; }
+    backup_progress=0;
+    const char *user=runtime_file_user_dir();
+    char prefix[720],base[800],snapshot[850],complete[850];
+    snprintf(prefix,sizeof(prefix),"%s/savedata/",user);
+    int result=-1;
+    unsigned char *buffer=malloc(65536);
+    if (!buffer) goto done;
+    if (strncmp(slots[slot].host,prefix,strlen(prefix))) goto done;
+    int n=snprintf(base,sizeof(base),"%s/savedata-backups/%s",user,slots[slot].host+strlen(prefix));
+    if (n<0 || n>=700 || make_dirs(base)) goto done;
+    char suffix[32];
+    static unsigned counter;
+    FILETIME now;
+    GetSystemTimeAsFileTime(&now);
+    snprintf(suffix,sizeof(suffix),"%08lx%08lx-%u",(unsigned long)now.dwHighDateTime,(unsigned long)now.dwLowDateTime,counter++);
+    n=snprintf(snapshot,sizeof(snapshot),"%s/incomplete-%s",base,suffix);
+    int m=snprintf(complete,sizeof(complete),"%s/backup-%s",base,suffix);
+    if (n<0 || m<0 || (size_t)n>=sizeof(snapshot) || (size_t)m>=sizeof(complete)) goto done;
+    if (mkdir(snapshot,0700)) goto done;
+    const char *sources[]={slots[slot].host,slots[slot].meta};
+    const char *names[]={"data","sce_sys"};
+    result=0;
+    for (unsigned i=0;i<2 && !result;++i) {
+        DWORD attributes=GetFileAttributesA(sources[i]);
+        if (attributes==INVALID_FILE_ATTRIBUTES) {
+            if (i==1) continue; /* saves may have no metadata */
+            result=-1; break;
+        }
+        char target[900];
+        int t=snprintf(target,sizeof(target),"%s/%s",snapshot,names[i]);
+        if (t<0 || (size_t)t>=sizeof(target) || backup_tree_path(sources[i],target,0,buffer)) result=-1;
+    }
+    if (!result && rename(snapshot,complete)) result=-1;
+    if (!result) {
+        runtime_file_unmount(point->data); slots[slot].used=0;
+        backup_progress=1;
+        printf("Runtime: save backup completed: %s\n",complete);
+    }
+done:
+    free(buffer);
+    pthread_mutex_unlock(&lock);
+    return result ? ERR_INTERNAL : 0;
+}
 #endif
 static ABI int32_t save_get_param(const MountPoint *point, uint32_t type, void *buffer,
                                   uint64_t size, uint64_t *got) {
@@ -482,9 +577,7 @@ static const RuntimeExport exports[]={
     {"sceSaveDataInitialize3",save_initialize}, {"sceSaveDataTerminate",save_terminate},
     {"sceSaveDataClearProgress",save_clear_progress}, {"sceSaveDataGetProgress",save_get_progress},
     {"sceSaveDataMount",save_mount}, {"sceSaveDataMount2",save_mount2}, {"sceSaveDataUmount",save_umount},
-#ifndef _WIN32
     {"sceSaveDataUmountWithBackup",save_umount_backup},
-#endif
     {"sceSaveDataSetParam",save_set_param}, {"sceSaveDataSaveIcon",save_icon}, {"sceSaveDataDelete",save_delete},
     {"sceSaveDataGetParam",save_get_param},
     {"sceSaveDataDirNameSearch",save_search},
