@@ -1,0 +1,10 @@
+{
+  "base_version": "01.00",
+  "display_name": "MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy",
+  "needs_native_pkg": true,
+  "schema_version": 1,
+  "supports_asset_dlc": true,
+  "supports_updates": true,
+  "target_version": "01.03",
+  "title_id": "CUSA28763"
+}
