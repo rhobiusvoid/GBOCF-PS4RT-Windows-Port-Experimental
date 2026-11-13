@@ -114,7 +114,9 @@ void LowerWave64BallotPass(IR::Program& program, const RuntimeInfo& runtime_info
             } else if (inst.GetOpcode() == IR::Opcode::ReadFirstLane) {
                 // ps4rt: V_READFIRSTLANE reads lane 0 of the whole 64-thread GCN wave; on a
                 // 32-wide subgroup the second half would read its own first lane instead.
-                push_worklist(inst);
+                // Experimental: also inside loops/conditionals (every 64-thread compute
+                // workgroup in the game's skinning shaders reaches these uniformly).
+                worklist.push_back(&inst);
             } else if (inst.GetOpcode() == IR::Opcode::Ballot) {
                 const auto is_unpack = [](const IR::Use& use) {
                     return use.user->GetOpcode() == IR::Opcode::UnpackUint2x32;
