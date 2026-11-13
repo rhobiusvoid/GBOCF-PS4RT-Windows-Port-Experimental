@@ -62,7 +62,7 @@ Known limitations and notes:
 - **FSR 4 v07** needs compatible Vulkan GPU features; use FSR 3.1, FSR 1 or Off where unsupported.
 - **30 FPS mode** is intended for lower-power hardware. The runtime may lift the limiter for 60 FPS video playback to avoid the videos playing at half speed and during dialogue as they are less intensive.
 - FPS depends heavily on GPU power, internal resolution, graphics-quality preset and shader/cache state.
-- **Older GPUs (Pascal and earlier) may show model/LOD glitches** (missing parts, point artifacts) because PS4 shader features such as barycentric interpolation and some texture formats are unavailable. Newer GPUs are expected to be better; reports welcome.
+- **Older GPUs (Pascal / GTX 10-series and earlier) may show model glitches**: on a GTX 1050 Ti, weapon and shoulder parts on some Zakus (Chapter 1) render with missing polygons or colored dots until the camera gets close. The cause appears to be GPU-side (a compute shader that builds the recolored textures), not a setting. Toggling the optimization, MSAA, barrier and interpolation options made no difference. Newer GPUs are expected to be better; reports welcome.
 - **CPUs older than Coffee Lake (or equivalent) may be missing required functions** Another user tested with an i5-3470, which is missing MOVBE, BMI1, and LZCNT instructions. Your mileage may vary. If your CPU is too old, there's no real chance for support.
 - **Backups:** the `savedata-backups` snapshot copy is best-effort; saving itself does not depend on it.
 - **Known deadlock risk** in the model manager (Chapters 1, 3, 5 per Hekami); see [WINDOWS-MUTEX-NOTES.md](docs/WINDOWS-MUTEX-NOTES.md).
