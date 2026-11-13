@@ -52,7 +52,7 @@ The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide 
 
 ## Current compatibility status
 
-**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart (0.3 Alpha). Chapters beyond that, Volume 2/3 and other GPUs are untested on Windows, and the port should be treated as an alpha.
+**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart. Boots on GTX 10-series and RTX 30/50-series cards (0.4 Alpha). Chapters beyond that and Volume 2/3 are untested on Windows, and the port should be treated as an alpha.
 
 **Original Linux build (by Hekami):** playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X, covering the tutorial, story missions, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. Volume 3 has not been fully gameplay-tested. Screenshots document a particular configuration, not a performance guarantee.
 
