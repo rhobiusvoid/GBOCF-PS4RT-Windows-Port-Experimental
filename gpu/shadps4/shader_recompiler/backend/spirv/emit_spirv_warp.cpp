@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include <cstdlib>
 #include "shader_recompiler/backend/spirv/emit_spirv_instructions.h"
 #include "shader_recompiler/backend/spirv/spirv_emit_context.h"
 
@@ -24,16 +23,7 @@ Id EmitQuadBroadcast(EmitContext& ctx, Id value, Id index) {
 }
 
 Id EmitReadFirstLane(EmitContext& ctx, Id value) {
-    // ps4rt: set PS4RT_RFL_BROADCAST=1 for the plain broadcast-first instruction. The default
-    // builds the same result from a ballot of the active invocations, because broadcast-first
-    // inside divergent waterfall loops misbehaves on some 32-wide GPUs.
-    static const bool plain = std::getenv("PS4RT_RFL_BROADCAST") != nullptr;
-    if (plain) {
-        return ctx.OpGroupNonUniformBroadcastFirst(ctx.U32[1], SubgroupScope(ctx), value);
-    }
-    const Id active{ctx.OpGroupNonUniformBallot(ctx.U32[4], SubgroupScope(ctx), ctx.true_value)};
-    const Id lane{ctx.OpGroupNonUniformBallotFindLSB(ctx.U32[1], SubgroupScope(ctx), active)};
-    return ctx.OpGroupNonUniformShuffle(ctx.U32[1], SubgroupScope(ctx), value, lane);
+    return ctx.OpGroupNonUniformBroadcastFirst(ctx.U32[1], SubgroupScope(ctx), value);
 }
 
 Id EmitShuffle(EmitContext& ctx, Id value, Id index) {

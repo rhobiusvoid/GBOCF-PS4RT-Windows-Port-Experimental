@@ -241,10 +241,7 @@ Id EmitImageRead(EmitContext& ctx, IR::Inst* inst, u32 handle, Id coords, Id lod
             if (Sirit::ValidId(ms)) {
                 LOG_ERROR(Render_Recompiler, "image is not MS but ms operand is provided");
             }
-            // ps4rt: always give OpImageFetch an explicit LOD. Without the operand the level is
-            // implementation-defined and NVIDIA samples a wrong mip level.
-            operands.Add(spv::ImageOperandsMask::Lod,
-                         Sirit::ValidId(lod) ? lod : ctx.u32_zero_value);
+            operands.Add(spv::ImageOperandsMask::Lod, lod);
             operands.Add(spv::ImageOperandsMask::Sample, ms);
         }
         texel = ctx.OpImageFetch(color_type, image, coords, operands.mask, operands.operands);

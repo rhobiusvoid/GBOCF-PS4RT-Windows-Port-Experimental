@@ -111,10 +111,6 @@ void LowerWave64BallotPass(IR::Program& program, const RuntimeInfo& runtime_info
         for (IR::Inst& inst : block->Instructions()) {
             if (inst.GetOpcode() == IR::Opcode::ReadLane && inst.Arg(1).IsImmediate()) {
                 push_worklist(inst);
-            } else if (inst.GetOpcode() == IR::Opcode::ReadFirstLane) {
-                // ps4rt: V_READFIRSTLANE reads lane 0 of the whole 64-thread GCN wave; on a
-                // 32-wide subgroup the second half would read its own first lane instead.
-                push_worklist(inst);
             } else if (inst.GetOpcode() == IR::Opcode::Ballot) {
                 const auto is_unpack = [](const IR::Use& use) {
                     return use.user->GetOpcode() == IR::Opcode::UnpackUint2x32;
@@ -153,14 +149,6 @@ void LowerWave64BallotPass(IR::Program& program, const RuntimeInfo& runtime_info
             const IR::U64 mask = IR::U64{ir.LoadShared(64, false, offset)};
             ir.Barrier();
             inst->ReplaceUsesWithAndRemove(mask);
-        } else if (inst->GetOpcode() == IR::Opcode::ReadFirstLane) {
-            const IR::U32 offset =
-                ir.IAdd(ir.Imm32(scratch_base), ir.ShiftLeftLogical(subgroup_id, ir.Imm32(2u)));
-            ir.WriteShared(32, ir.ReadFirstLane(IR::U32{inst->Arg(0)}), offset);
-            ir.Barrier();
-            const IR::U32 value{ir.LoadShared(32, false, ir.BitwiseAnd(offset, ir.Imm32(~7u)))};
-            ir.Barrier();
-            inst->ReplaceUsesWithAndRemove(value);
         } else if (inst->GetOpcode() == IR::Opcode::ReadLane) {
             const IR::U32 lane32 = ir.BitwiseAnd(IR::U32{inst->Arg(1)}, ir.Imm32(31));
             const IR::U32 half = ir.ShiftRightLogical(IR::U32{inst->Arg(1)}, ir.Imm32(5u));

@@ -95,11 +95,8 @@ void Visit(Info& info, const IR::Inst& inst) {
     case IR::Opcode::ShuffleXor:
         info.uses_group_shuffle = true;
         break;
-    case IR::Opcode::ReadFirstLane:
-        info.uses_group_shuffle = true; // ps4rt: ballot + shuffle form
-        info.uses_group_ballot = true;
-        break;
     case IR::Opcode::ReadLane:
+    case IR::Opcode::ReadFirstLane:
     case IR::Opcode::WriteLane:
         info.uses_group_ballot = true;
         break;
