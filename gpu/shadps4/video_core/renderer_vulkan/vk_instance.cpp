@@ -223,24 +223,23 @@ std::string Instance::GetDriverVersionName() {
 }
 
 namespace {
-bool PipelineBinaryCacheRequested() {
+bool PipelineBinaryCacheRequested(u32 vendor_id) {
+    // PS4RT_PIPELINE_BINARIES: "0" forces off, any other non-empty value forces on.
+    // Unset: on, except NVIDIA (0x10de), where the first call, vkGetPipelineKeyKHR, crashed the
+    // game at boot on RTX 30/50 drivers exposing VK_KHR_pipeline_binary. Same policy as upstream.
     const char* setting = std::getenv("PS4RT_PIPELINE_BINARIES");
-#ifdef _WIN32
-    // Windows: off unless PS4RT_PIPELINE_BINARIES=1. On NVIDIA drivers that expose
-    // VK_KHR_pipeline_binary (RTX 30/50 series reports) the very first call, vkGetPipelineKeyKHR,
-    // returned with the caller's callee-saved registers clobbered and the game crashed at boot.
-    return setting && *setting == '1';
-#else
-    return !setting || *setting != '0';
-#endif
+    if (setting && *setting) {
+        return *setting != '0';
+    }
+    return vendor_id != 0x10de;
 }
 }
 
-bool InitializePipelineBinaryCache(vk::Device device, bool supported,
+bool InitializePipelineBinaryCache(vk::Device device, bool supported, u32 vendor_id,
                                    vk::PipelineBinaryKeyKHR& global_key) {
     global_key = vk::PipelineBinaryKeyKHR{};
-    if (!PipelineBinaryCacheRequested()) {
-        LOG_INFO(Render_Vulkan, "Pipeline binary cache disabled by settings; using normal compilation");
+    if (!PipelineBinaryCacheRequested(vendor_id)) {
+        LOG_INFO(Render_Vulkan, "Pipeline binary cache off (setting or NVIDIA default); using normal compilation");
         return false;
     }
     if (!supported) {
@@ -339,7 +338,7 @@ bool Instance::CreateDevice() {
 
     // Optional
     maintenance_5 = add_extension(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
-    pipeline_binaries = PipelineBinaryCacheRequested() && maintenance_5 &&
+    pipeline_binaries = PipelineBinaryCacheRequested(properties.vendorID) && maintenance_5 &&
         feature_chain.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>().maintenance5 &&
         feature_chain.get<vk::PhysicalDevicePipelineBinaryFeaturesKHR>().pipelineBinaries &&
         add_extension(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
@@ -760,7 +759,8 @@ bool Instance::CreateDevice() {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
     pipeline_binaries =
-        InitializePipelineBinaryCache(*device, pipeline_binaries, pipeline_binary_global_key);
+        InitializePipelineBinaryCache(*device, pipeline_binaries, properties.vendorID,
+                                      pipeline_binary_global_key);
     if (Dlss* dlss = Dlss::Get()) {
         dlss->Initialize(*instance, physical_device, *device);
     }
