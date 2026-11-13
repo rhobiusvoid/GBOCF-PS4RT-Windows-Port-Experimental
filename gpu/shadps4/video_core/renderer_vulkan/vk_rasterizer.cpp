@@ -156,6 +156,29 @@ bool IsKnownFormat(AmdGpu::DataFormat data_fmt, AmdGpu::NumberFormat num_fmt) {
 }
 } // namespace
 
+
+// ps4rt diagnostics: PS4RT_SKIP_SHADER also drops compute dispatches of the listed shaders.
+static bool ps4rt_skip_compute(const Vulkan::ComputePipeline* pipeline) {
+    static const auto list = [] {
+        std::vector<u64> l;
+        if (const char* v = std::getenv("PS4RT_SKIP_SHADER")) {
+            for (const char* p = v; *p;) {
+                char* end = nullptr;
+                const u64 h = std::strtoull(p, &end, 16);
+                if (end == p) { ++p; continue; }
+                l.push_back(h);
+                p = end;
+            }
+        }
+        return l;
+    }();
+    if (list.empty()) return false;
+    for (const Shader::Info* stage : pipeline->GetStages()) {
+        if (stage && std::find(list.begin(), list.end(), stage->pgm_hash) != list.end()) return true;
+    }
+    return false;
+}
+
 bool Rasterizer::FilterDraw() {
     const auto& regs = Regs();
     if (regs.color_control.mode == AmdGpu::ColorControl::OperationMode::EliminateFastClear) {
@@ -2001,7 +2024,7 @@ void Rasterizer::DispatchDirect() {
         DrainDrawPipe();
     }
     const ComputePipeline* pipeline = pipeline_cache.GetComputePipeline();
-    if (!pipeline) {
+    if (!pipeline || ps4rt_skip_compute(pipeline)) {
         return;
     }
     if (pipelined) {
@@ -2084,7 +2107,7 @@ void Rasterizer::DispatchIndirect(VAddr address, u32 offset, u32 size) {
         DrainDrawPipe();
     }
     const ComputePipeline* pipeline = pipeline_cache.GetComputePipeline();
-    if (!pipeline) {
+    if (!pipeline || ps4rt_skip_compute(pipeline)) {
         return;
     }
     if (pipelined) {
