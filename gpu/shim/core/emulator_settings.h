@@ -51,7 +51,7 @@ public:
     }
     bool IsCopyGpuBuffers() { static const auto value = Flag("PS4RT_COPY_GPU_BUFFERS", false); return value; }
     bool IsDirectMemoryAccessEnabled() { static const auto value = Flag("PS4RT_DIRECT_MEMORY_ACCESS", false); return value; }
-    bool IsDumpShaders() { return false; }
+    bool IsDumpShaders() { static const bool on = std::getenv("PS4RT_DUMP_SHADERS") != nullptr; return on; }
     bool IsHdrAllowed() { static const auto value = Flag("PS4RT_HDR", false); return value; }
     bool IsNullGPU() { static const auto value = Flag("PS4RT_NULL_GPU", false); return value; }
     bool IsPatchShaders() {
