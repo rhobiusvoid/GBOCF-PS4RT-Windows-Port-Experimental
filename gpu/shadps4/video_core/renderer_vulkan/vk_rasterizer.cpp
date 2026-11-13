@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <mutex>
 #include <unordered_set>
 #include <unordered_map>
@@ -936,6 +939,55 @@ void Rasterizer::Draw(bool is_indexed, u32 index_offset, const PreparedDraw* pre
     }
     if (!pipeline) {
         return;
+    }
+    // ps4rt diagnostics: PS4RT_SKIP_SHADER=<hex hash>[,<hex hash>...] drops draws using those
+    // shaders; PS4RT_DRAW_LOG=1 prints each vertex/pixel shader pair the first time it draws.
+    {
+        static const auto skip_list = [] {
+            std::vector<u64> list;
+            if (const char* v = std::getenv("PS4RT_SKIP_SHADER")) {
+                for (const char* p = v; *p;) {
+                    char* end = nullptr;
+                    const u64 h = std::strtoull(p, &end, 16);
+                    if (end == p) {
+                        ++p;
+                        continue;
+                    }
+                    list.push_back(h);
+                    p = end;
+                }
+            }
+            return list;
+        }();
+        static const bool draw_log = std::getenv("PS4RT_DRAW_LOG") != nullptr;
+        if (!skip_list.empty() || draw_log) {
+            u64 vs = 0, ps = 0;
+            bool skip = false;
+            for (const Shader::Info* stage : pipeline->GetStages()) {
+                if (!stage) {
+                    continue;
+                }
+                if (stage->sw_stage == Shader::SwStage::Vertex) {
+                    vs = stage->pgm_hash;
+                } else if (stage->sw_stage == Shader::SwStage::Fragment) {
+                    ps = stage->pgm_hash;
+                }
+                skip |= std::find(skip_list.begin(), skip_list.end(), stage->pgm_hash) !=
+                        skip_list.end();
+            }
+            if (draw_log) {
+                static std::unordered_set<u64> seen;
+                static std::mutex seen_mutex;
+                std::scoped_lock lock{seen_mutex};
+                if (seen.size() < 1500 && seen.insert(vs * 31 + ps).second) {
+                    std::printf("DrawLog: vs=%016llx ps=%016llx\n", (unsigned long long)vs,
+                                (unsigned long long)ps);
+                }
+            }
+            if (skip) {
+                return;
+            }
+        }
     }
     if (pipelined && FilterDrawPasses()) {
         PostDraw(pipeline, used_prepared, is_indexed, index_offset);

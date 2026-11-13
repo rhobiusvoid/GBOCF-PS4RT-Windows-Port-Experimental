@@ -12,6 +12,8 @@
 #include "shader_recompiler/ir/program.h"
 #include "shader_recompiler/profile.h"
 #include "shader_recompiler/recompiler.h"
+#include <cstdio>
+#include <cstdlib>
 
 namespace Shader {
 
@@ -152,6 +154,37 @@ IR::Program TranslateProgram(const std::span<const u32>& code, Pools& pools, Inf
         Shader::Optimization::InterpolatedIntegerPass(program);
     }
     Shader::Optimization::CollectShaderInfoPass(program, profile);
+    // ps4rt diagnostics (PS4RT_SHADER_LOG=1): per shader, the lane/wave-dependent operations it
+    // still contains after lowering (these behave differently on 32-wide GPUs than on GCN).
+    static const bool shader_log = std::getenv("PS4RT_SHADER_LOG") != nullptr;
+    if (shader_log) {
+        u32 lane = 0, read_lane = 0, write_lane = 0, first = 0, ballot = 0, shuffle = 0, quad = 0,
+            mbcnt = 0, any = 0;
+        for (const IR::Block* const block : program.blocks) {
+            for (const IR::Inst& inst : block->Instructions()) {
+                switch (inst.GetOpcode()) {
+                case IR::Opcode::LaneId: ++lane; break;
+                case IR::Opcode::ReadLane: ++read_lane; break;
+                case IR::Opcode::WriteLane: ++write_lane; break;
+                case IR::Opcode::ReadFirstLane: ++first; break;
+                case IR::Opcode::Ballot:
+                case IR::Opcode::BallotFindLsb:
+                case IR::Opcode::InverseBallot: ++ballot; break;
+                case IR::Opcode::Shuffle:
+                case IR::Opcode::ShuffleXor: ++shuffle; break;
+                case IR::Opcode::QuadBroadcast: ++quad; break;
+                case IR::Opcode::MaskedBitCount32: ++mbcnt; break;
+                case IR::Opcode::GroupAny: ++any; break;
+                default: break;
+                }
+            }
+        }
+        std::printf("ShaderLog: %016llx stage=%u hw=%u lane=%u readlane=%u writelane=%u "
+                    "readfirst=%u ballot=%u shuffle=%u quad=%u mbcnt=%u any=%u\n",
+                    static_cast<unsigned long long>(info.pgm_hash), static_cast<u32>(info.sw_stage),
+                    static_cast<u32>(info.hw_stage), lane, read_lane, write_lane, first, ballot,
+                    shuffle, quad, mbcnt, any);
+    }
     Shader::IR::DumpProgram(program, info);
 
     return program;
