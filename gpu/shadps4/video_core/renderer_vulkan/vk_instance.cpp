@@ -225,7 +225,14 @@ std::string Instance::GetDriverVersionName() {
 namespace {
 bool PipelineBinaryCacheRequested() {
     const char* setting = std::getenv("PS4RT_PIPELINE_BINARIES");
+#ifdef _WIN32
+    // Windows: off unless PS4RT_PIPELINE_BINARIES=1. On NVIDIA drivers that expose
+    // VK_KHR_pipeline_binary (RTX 30/50 series reports) the very first call, vkGetPipelineKeyKHR,
+    // returned with the caller's callee-saved registers clobbered and the game crashed at boot.
+    return setting && *setting == '1';
+#else
     return !setting || *setting != '0';
+#endif
 }
 }
 
