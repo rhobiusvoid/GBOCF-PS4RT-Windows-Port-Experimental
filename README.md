@@ -1,6 +1,6 @@
 
 # NoisyFairy
-<img width="1536" height="1024" alt="NoisyFairy logo" src="https://github.com/user-attachments/assets/35899986-5ef2-42e0-bf1f-ff831b19d633" />
+<img width="1473" height="515" alt="NoisyFairy logo" src="https://github.com/user-attachments/assets/0f7c8877-f92c-40b9-950d-750ae3a34331" />
 
 **NoisyFairy** is a Windows port of the PS4 runtime for *Mobile Suit Gundam Battle Operation Code Fairy*. It is a game-specific **Windows port** of [HekamiAeon/GBO-Code-Fairy-PS4RT](https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT), a compatibility runtime for **MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy** (PlayStation 4, **CUSA28763, v01.03**). All of the runtime design, PS4 service layers and game-specific work come from **Hekami's original Linux project**; this repository adapts it to run natively on Windows 10/11 and is not affiliated with it. See [Credits](#credits-and-licensing).
 
