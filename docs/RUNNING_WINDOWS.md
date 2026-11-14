@@ -26,7 +26,12 @@ them. Releases contain no game data, firmware, PKGs or saves.
 
 ## 2. First launch
 
-Open a `cmd` window in the extracted folder (it keeps the log visible) and run:
+Double-click **`NoisyFairy.bat`**. In the launcher, press **Browse**, pick the extracted `CUSA28763` folder and press **Play**.
+The **Options** tab holds the graphics settings (the same ones as the in-game menu), and a **Write log file** switch
+(on by default) that saves everything the game prints to `out\CUSA28763\user\log`. The launcher returns when the game closes
+and shows the exit code if it crashed.
+
+The command line does the same job. Open a `cmd` window in the extracted folder and run:
 
 ```bat
 Play-Game.bat --game "C:\path\to\extracted\CUSA28763"
@@ -43,7 +48,7 @@ Pass `--game` again if you move the game folder. Redirect output to keep a log:
 
 If the game folder is v01.00, the setup window asks for your v01.03 update PKG and updates that folder **in place**.
 Back it up first if you need the original. The three volume keys are installed through the setup window or
-the overlay's **Install DLC...** button, then restart.
+the launcher's **Install Volume Keys...** button (or the overlay's **Install DLC...**), then restart.
 
 ## 3. Menu, graphics and controls
 
@@ -87,7 +92,8 @@ Everything the runtime generates is under `out\CUSA28763\` inside the package fo
 | Symptom | What to do |
 | --- | --- |
 | `STOP: reserving the PS4 address range ... error 487` | The runtime needs the 0x1000000000-0xfc00000000 range free. Launch with `Play-Game.bat` (it clears the high-entropy ASLR flag on bundled DLLs); do not run `bin\ps4rt.exe` from a copy with different DLLs. |
-| Window closes immediately | Run from a `cmd` window and read the last lines. |
+| Window closes immediately | Open the newest file in `out\CUSA28763\user\log` (or run `Play-Game.bat` from a `cmd` window and read the last lines). |
+| Black screen at boot, no Bandai Namco logo | Boot takes a few seconds. If it stalls longer, close the game and report it on the Issues tab with the newest log; with logging on it contains a "Hang watch" section showing what every thread is doing. |
 | `Fault: ...` report | Send the full console output (it includes registers and a stack excerpt). |
 | Setup rejects the game | Confirm CUSA28763 / v01.03 and that `--game` is the extracted folder itself. |
 | A volume stays locked | Install that volume's key PKG, then restart. |

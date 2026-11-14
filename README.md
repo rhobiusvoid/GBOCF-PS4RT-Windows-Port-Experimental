@@ -17,10 +17,12 @@ PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 
 ## Download and play
 
 1. Download the latest build from the **Releases** page (if it is split in parts, follow [WINDOWS-PORT.md](WINDOWS-PORT.md) to join them) and extract it to a short, writable path such as `C:\CodeFairy\`.
-2. Open a `cmd` window in that folder and run `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"`. Running from `cmd` keeps the log visible; add `> log.txt 2>&1` to save it.
-3. Follow the setup window for the v01.03 update and volume keys if needed.
+2. Double-click **`NoisyFairy.bat`** to open the launcher. Press **Browse** and pick your extracted `CUSA28763` folder, then **Play**. Graphics settings are on the launcher's **Options** tab.
+3. Follow the setup window for the v01.03 update and volume keys if needed (volume keys can also be installed later with **Install Volume Keys...** on the launcher).
 
-After successful setup the game path is remembered, so later sessions only need `Play-Game.bat`. Pass `--game` again if you move the game folder, and `--dlc-pkg <path>` to install volume keys later (also available from the Insert overlay). If you are going to install DLC keys seperately through CLI, make sure to include the `.pkg` extension.
+The game folder is remembered. The command line still works for advanced use: `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"`, plus `--dlc-pkg <path>` (include the `.pkg` extension) to install volume keys.
+
+**The game should start within a few seconds.** If it sits on a black screen and never shows the Bandai Namco logo, it has stalled: close it and report it on the **Issues** tab with the newest file from `out\CUSA28763\user\log` (the launcher writes one by default).
 
 Requirements: Windows 10 1803+ (64-bit) and a Vulkan 1.3 GPU. Full guide: [Running on Windows](docs/RUNNING_WINDOWS.md).
 
@@ -54,7 +56,7 @@ The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide 
 
 ## Current compatibility status
 
-**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart. Boots on GTX 10-series and RTX 30/50-series cards (0.4 Alpha). Chapters beyond that and Volume 2/3 are untested on Windows, and the port should be treated as an alpha.
+**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart. Boots on GTX 10-series, RTX 30/50-series and AMD cards (0.5 Alpha). A rare, random black-screen stall at boot has been seen; see the launch note above. Chapters beyond that and Volume 2/3 are untested on Windows, and the port should be treated as an alpha.
 
 **Original Linux build (by Hekami):** playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X, covering the tutorial, story missions, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. Volume 3 has not been fully gameplay-tested. Screenshots document a particular configuration, not a performance guarantee.
 
