@@ -324,6 +324,18 @@ static void checkbox(const char* label, const char* id, Ini& ini, const char* ke
     if (ImGui::Checkbox(id, &v)) ini.set(key, v ? "1" : "0");
 }
 
+// Volume unlock keys are stored as add-on folders (player-content\dlc, or a pre-extracted dlc\CUSA28763).
+static int installed_keys(const fs::path& root) {
+    int n = 0;
+    std::error_code ec;
+    for (const fs::path& dir : {root / "out" / kTitleId / "player-content" / "dlc", root / "dlc" / kTitleId}) {
+        for (auto& e : fs::directory_iterator(dir, ec))
+            if (e.is_directory(ec) && fs::is_regular_file(e.path() / "sce_sys" / "param.sfo", ec)) ++n;
+    }
+    return n;
+}
+static constexpr int kKeysNeeded = 3;
+
 static std::string stamp() {
     std::time_t t = std::time(nullptr);
     char buf[32];
@@ -423,6 +435,8 @@ int main(int, char**) {
     FolderPicker picker;
     std::string error;
     fs::path last_log;
+    int keys = installed_keys(root);
+    std::string notice;
     int tab = 0;
     bool log_to_file = launcher_ini.num("log_to_file", 1) != 0;
     bool child_dlc = false;
@@ -452,9 +466,15 @@ int main(int, char**) {
             CloseHandle(child);
             child = nullptr;
             game_ini.load();   // the game rewrites ps4rt.ini
-            if (code != 0 && !child_dlc) {
-                char hex[32];
-                std::snprintf(hex, sizeof(hex), "0x%08lX", (unsigned long)code);
+            keys = installed_keys(root);
+            char hex[32];
+            std::snprintf(hex, sizeof(hex), "0x%08lX", (unsigned long)code);
+            if (child_dlc) {
+                if (code == 10) notice = "Volume keys installed. They take effect the next time the game starts.";
+                else if (code != 0)
+                    error = std::string("Installing the volume keys failed (exit code ") + hex +
+                            "). Details are in the newest log (Options > Open log folder).";
+            } else if (code != 0) {
                 error = std::string("The game closed unexpectedly (exit code ") + hex + ").";
                 if (!last_log.empty()) error += " Details were saved to the log file; use Options > Open log folder.";
                 else error += " Turn on \"Write log file\" in Options to capture details next time.";
@@ -517,13 +537,18 @@ int main(int, char**) {
 
             ImGui::BeginDisabled(!ok || busy);
             if (fonts.big) ImGui::PushFont(fonts.big, 28.f);
-            const bool play = nf_button(busy ? (child_dlc ? "INSTALLING..." : "RUNNING...") : "PLAY", {kCol - 12, 68});
+            const bool play = nf_button(busy ? (child_dlc ? "INSTALLING KEYS..." : "RUNNING...") : "PLAY", {kCol - 12, 68});
             if (fonts.big) ImGui::PopFont();
             if (fonts.bold) ImGui::PushFont(fonts.bold, 18.f);
-            const bool dlc = nf_button("Install DLC...", {kCol - 12, 46});
+            const bool show_keys = keys < kKeysNeeded;
+            const bool dlc = show_keys && nf_button("Install Volume Keys...", {kCol - 12, 46});
             if (fonts.bold) ImGui::PopFont();
             ImGui::EndDisabled();
 
+            if (!notice.empty() && error.empty()) {
+                ImGui::Dummy({0, 4});
+                ImGui::TextColored({.50f, .95f, .60f, 1}, "%s", notice.c_str());
+            }
             if (!error.empty()) {
                 ImGui::Dummy({0, 4});
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, .62f, .62f, 1));
@@ -532,7 +557,7 @@ int main(int, char**) {
                 ImGui::PopTextWrapPos();
                 ImGui::PopStyleColor();
             } else if (busy) {
-                ImGui::TextDisabled("%s", child_dlc ? "Installing DLC..." : "Game running. This window returns when it closes.");
+                ImGui::TextDisabled("%s", child_dlc ? "Installing volume keys..." : "Game running. This window returns when it closes.");
             }
             ImGui::Dummy({0, 2});
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
@@ -545,9 +570,10 @@ int main(int, char**) {
                 std::vector<std::string> args = {"--game", game};
                 if (dlc) args.push_back("--install-dlc");
                 error.clear();
+                notice.clear();
                 fs::path log;
-                if (log_to_file && !dlc) {
-                    log = log_dir / ("NoisyFairy-" + stamp() + ".log");
+                if (log_to_file || dlc) {   // the key installer always logs: it has no console of its own
+                    log = log_dir / (std::string(dlc ? "NoisyFairy-keys-" : "NoisyFairy-") + stamp() + ".log");
                     std::error_code ec;
                     fs::create_directories(log_dir, ec);
                     prune_logs(log_dir, 9);

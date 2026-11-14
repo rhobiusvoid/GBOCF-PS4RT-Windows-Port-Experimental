@@ -165,14 +165,14 @@ static Copy get_copy(const std::string& mode) {
                 "CUSA folder in place, replacing v01.00 files with v01.03.\n"
                 "Your original PKG and game saves are not modified.", "Apply Update", false};
     if (mode == "dlc")
-        return {"OPTIONAL DLC / CUSA28763", "Add extra content?",
-                "Select any DLC PKGs you own, or skip this optional step.\n"
-                "You can add DLC later from the in-game overlay.",
-                "Install DLC", true};
-    return {"ADDITIONAL CONTENT / CUSA28763", "Install DLC",
-            "Select DLC PKGs you own. Existing add-ons will be preserved.\n"
-            "Save and restart the game to activate new DLC.",
-            "Install DLC", true};
+        return {"VOLUME KEYS / CUSA28763", "Install volume keys?",
+                "Select your volume unlock-key PKGs, or skip this step.\n"
+                "You can install them later from the launcher.",
+                "Install Keys", true};
+    return {"VOLUME KEYS / CUSA28763", "Install volume keys",
+            "Select the volume unlock-key PKGs you own. Keys already installed are skipped.\n"
+            "Restart the game to activate new keys.",
+            "Install Keys", true};
 }
 
 struct Progress {
@@ -359,10 +359,10 @@ int main(int argc, char** argv) {
         ImGui::Spacing();
         if (progress_mode) {
             ImGui::TextColored({1, .67f, .82f, 1},
-                               dlc_progress_mode ? "OPTIONAL DLC / CUSA28763" :
+                               dlc_progress_mode ? "VOLUME KEYS / CUSA28763" :
                                                    "GAME UPDATE / CUSA28763");
             ImGui::SetWindowFontScale(1.4f);
-            ImGui::TextUnformatted(dlc_progress_mode ? "Installing additional content" :
+            ImGui::TextUnformatted(dlc_progress_mode ? "Installing volume keys" :
                                                        "Preparing version 01.03");
             ImGui::SetWindowFontScale(1);
             ImGui::Spacing();
@@ -379,7 +379,7 @@ int main(int argc, char** argv) {
                             spinner[step]);
             } else if (progress.state == "success") {
                 ImGui::TextColored({.60f, .95f, .75f, 1},
-                                   dlc_progress_mode ? "DLC setup complete. Restart to activate." :
+                                   dlc_progress_mode ? "Volume keys installed. Restart to activate." :
                                                        "Version 01.03 is ready.");
             } else {
                 ImGui::TextColored({1, .5f, .5f, 1},
@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
             }
             ImGui::Spacing();
             ImGui::TextDisabled(dlc_progress_mode ?
-                                "Three completed stages per DLC; not bytes or elapsed time." :
+                                "Three completed stages per key; not bytes or elapsed time." :
                                 "The bar tracks completed stages, not bytes or elapsed time.");
         } else {
             ImGui::TextColored({1, .67f, .82f, 1}, "%s", copy.category);

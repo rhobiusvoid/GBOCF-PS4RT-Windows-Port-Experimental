@@ -71,6 +71,8 @@ def _metadata(game: Path) -> dict:
 
 
 def _desktop() -> bool:
+    if os.name == "nt":
+        return True  # Windows always has a desktop session
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
