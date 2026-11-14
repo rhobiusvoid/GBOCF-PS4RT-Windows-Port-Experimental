@@ -121,13 +121,22 @@ def choose_setup(root: Path, kind: str) -> list[Path]:
                              "Use the packaged Windows release, which includes "
                              "bin\\ps4rt-setup.exe.")
         result = subprocess.run([str(executable), "--mode", kind],
-                                capture_output=True, text=True, check=False)
+                                capture_output=True, check=False)
+        stdout = result.stdout.decode("utf-8", errors="replace")
+        stderr = result.stderr.decode("utf-8", errors="replace")
         if result.returncode == 1:
             return []  # player skipped or cancelled
         if result.returncode != 0:
             raise SetupError(f"MOBILE SUIT GUNDAM BATTLE OPERATION Code Fairy setup interface failed "
-                             f"(code {result.returncode}): {result.stderr.strip()}")
-        files = [Path(p).expanduser().resolve() for p in result.stdout.splitlines() if p.strip()]
+                             f"(code {result.returncode}): {stderr.strip()}")
+        files = []
+        for line in stdout.splitlines():
+            line = line.strip()
+            # The chooser prints one absolute PKG path per line; ignore any other stdout noise.
+            if line.lower().endswith(".pkg") and Path(line).is_absolute():
+                files.append(Path(line).expanduser().resolve())
+            elif line:
+                print(f"Setup interface: ignoring unexpected output line: {line!r}", file=sys.stderr, flush=True)
         if (kind == "update" and len(files) != 1) or not files:
             raise SetupError("The setup interface returned no usable PKG selection.")
         return files
