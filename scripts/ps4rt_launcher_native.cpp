@@ -87,22 +87,23 @@ struct Ini {
 
 struct Opt { const char* label; const char* key; };   // key stored in ini
 static const Opt kDisplayModes[] = {{"Windowed", "windowed"}, {"Borderless", "borderless"}, {"Fullscreen", "fullscreen"}};
-static const Opt kFpsLimits[] = {{"30 FPS", "30"}, {"60 FPS", "60"}, {"120 FPS", "120"}, {"240 FPS", "240"}, {"Unlimited", "0"}};
-static const Opt kEngineFps[] = {{"60 (original)", "60"}, {"120", "120"}, {"240", "240"}};
-static const Opt kResolutions[] = {
-    {"1024 x 576", "540p"}, {"1280 x 720", "720p"}, {"1920 x 1080 (original)", "native"},
-    {"2560 x 1440", "1440p"}, {"3840 x 2160 (4K)", "2160p"}, {"2560 x 1080 (21:9)", "2560x1080"},
-    {"3440 x 1440 (21:9)", "3440x1440"}, {"3840 x 1440 (24:9)", "3840x1440"},
-    {"3840 x 1080 (32:9)", "3840x1080"}, {"5120 x 1440 (32:9)", "5120x1440"}};
-static const Opt kOutputs[] = {{"Same as internal", "native"}, {"1920 x 1080", "1920x1080"},
-                               {"2560 x 1440", "2560x1440"}, {"3840 x 2160", "3840x2160"},
-                               {"3440 x 1440", "3440x1440"}, {"3840 x 1440", "3840x1440"},
-                               {"5120 x 1440", "5120x1440"}};
-static const Opt kUpscalers[] = {{"Off", "off"}, {"FSR 3.1", "fsr3"}, {"FSR 4 (v07)", "fsr4"},
-                                 {"FSR 4.1.1", "fsr411"}, {"TAA", "taa"}};
+static const Opt kFpsLimits[] = {{"60 (original)", "0"}, {"30", "30"}};
+// Internal resolutions (ini key, width, height), same order as the in-game menu.
+struct Res { const char* label; const char* key; int w, h; };
+static const Res kResolutions[] = {
+    {"1024 x 576", "540p", 1024, 576}, {"1280 x 720", "720p", 1280, 720},
+    {"1920 x 1080 (original)", "native", 1920, 1080}, {"2560 x 1440", "1440p", 2560, 1440},
+    {"3840 x 2160 (4K)", "2160p", 3840, 2160}, {"2560 x 1080 (21:9)", "2560x1080", 2560, 1080},
+    {"3440 x 1440 (21:9)", "3440x1440", 3440, 1440}, {"3840 x 1440 (24:9)", "3840x1440", 3840, 1440},
+    {"3840 x 1080 (32:9)", "3840x1080", 3840, 1080}, {"5120 x 1440 (32:9)", "5120x1440", 5120, 1440}};
+static const Res kOutputs[] = {
+    {"Native (AA only)", "native", 0, 0}, {"1920 x 1080", "1920x1080", 1920, 1080},
+    {"2560 x 1440", "2560x1440", 2560, 1440}, {"3840 x 2160 (4K)", "3840x2160", 3840, 2160},
+    {"3440 x 1440", "3440x1440", 3440, 1440}, {"3840 x 1440", "3840x1440", 3840, 1440},
+    {"5120 x 1440", "5120x1440", 5120, 1440}};
+static const Opt kUpscalers[] = {{"Off", "off"}, {"FSR 1", "fsr1"}, {"FSR 3.1", "fsr3"}, {"FSR 4 v07", "fsr4"}};
 static const Opt kQualities[] = {{"Max (original)", "max"}, {"Medium", "medium"}, {"Low", "low"}};
 static const Opt kAniso[] = {{"Game default", "0"}, {"2x", "2"}, {"4x", "4"}, {"8x", "8"}, {"16x", "16"}};
-static const Opt kQueued[] = {{"1 frame (lowest latency)", "1"}, {"2 frames", "2"}, {"Unbounded", "0"}};
 #define COUNT(a) (int(sizeof(a) / sizeof((a)[0])))
 
 // ---------------------------------------------------------------- misc helpers
@@ -562,35 +563,74 @@ int main(int, char**) {
             ImGui::BeginChild("##opts", {0, 0}, false, ImGuiWindowFlags_NoBackground);
             section("DISPLAY");
             combo("Window mode", "##display_mode", kDisplayModes, COUNT(kDisplayModes), game_ini, "display_mode", "windowed");
-            checkbox("V-Sync", "##vsync", game_ini, "vsync", true);
-            combo("FPS limit", "##fps_limit", kFpsLimits, COUNT(kFpsLimits), game_ini, "fps_limit", "0");
-            checkbox("Show FPS counter", "##show_fps", game_ini, "show_fps", false);
+            combo("Frame rate limit", "##fps_limit", kFpsLimits, COUNT(kFpsLimits), game_ini, "fps_limit", "0");
+            checkbox("FPS counter", "##show_fps", game_ini, "show_fps", false);
 
-            section("RENDERING");
-            combo("Internal resolution", "##render_resolution", kResolutions, COUNT(kResolutions), game_ini,
-                  "render_resolution", "native");
-            combo("Graphics quality", "##graphics_quality", kQualities, COUNT(kQualities), game_ini,
-                  "graphics_quality", "max");
-            combo("Anisotropic filter", "##anisotropy", kAniso, COUNT(kAniso), game_ini, "anisotropy", "0");
-
-            section("UPSCALING");
-            combo("Upscaler", "##upscaler", kUpscalers, COUNT(kUpscalers), game_ini, "upscaler", "off");
-            combo("Output resolution", "##output_res", kOutputs, COUNT(kOutputs), game_ini, "output_res", "native");
-            checkbox("Sharpening (RCAS)", "##rcas", game_ini, "rcas", false);
+            section("RENDERING (applied on restart)");
+            int res_sel = 2;
             {
-                int strength = game_ini.num("rcas_strength", 75);
+                const std::string cur = game_ini.str("render_resolution", "native");
+                for (int i = 0; i < COUNT(kResolutions); ++i) if (cur == kResolutions[i].key) res_sel = i;
                 ImGui::AlignTextToFramePadding();
-                ImGui::TextUnformatted("Sharpening strength");
+                ImGui::TextUnformatted("Internal resolution");
                 ImGui::SameLine(190);
                 ImGui::SetNextItemWidth(kCol - 190 - 12);
-                if (ImGui::SliderInt("##rcas_strength", &strength, 0, 100, "%d%%"))
-                    game_ini.set("rcas_strength", std::to_string(strength));
+                if (ImGui::BeginCombo("##render_resolution", kResolutions[res_sel].label)) {
+                    for (int i = 0; i < COUNT(kResolutions); ++i)
+                        if (ImGui::Selectable(kResolutions[i].label, i == res_sel)) {
+                            game_ini.set("render_resolution", kResolutions[i].key);
+                            res_sel = i;
+                        }
+                    ImGui::EndCombo();
+                }
             }
+            combo("Graphics quality", "##graphics_quality", kQualities, COUNT(kQualities), game_ini,
+                  "graphics_quality", "max");
+            combo("Anisotropic filtering", "##anisotropy", kAniso, COUNT(kAniso), game_ini, "anisotropy", "0");
 
-            section("PERFORMANCE");
-            combo("Engine frame rate", "##engine_fps", kEngineFps, COUNT(kEngineFps), game_ini, "engine_fps", "120");
-            combo("Frames queued", "##frames_queued", kQueued, COUNT(kQueued), game_ini, "frames_queued", "1");
-            checkbox("Async shader compile", "##async_shaders", game_ini, "async_shaders", true);
+            section("UPSCALING");
+            combo("FSR", "##upscaler", kUpscalers, COUNT(kUpscalers), game_ini, "upscaler", "off");
+            {
+                // Outputs larger than the internal resolution with the same aspect ratio (as in-game).
+                const Res& in = kResolutions[res_sel];
+                std::string cur = game_ini.str("output_res", "native");
+                auto allowed = [&](const Res& o) {
+                    if (o.w == 0) return true;
+                    const double a = double(in.w) / in.h, b = double(o.w) / o.h;
+                    return o.w > in.w && o.h > in.h && std::abs(b - a) <= 0.01 * a;
+                };
+                int sel = 0;
+                for (int i = 0; i < COUNT(kOutputs); ++i) if (cur == kOutputs[i].key && allowed(kOutputs[i])) sel = i;
+                if (cur != kOutputs[sel].key) game_ini.set("output_res", kOutputs[sel].key);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted("FSR upscale output");
+                ImGui::SameLine(190);
+                ImGui::SetNextItemWidth(kCol - 190 - 12);
+                if (ImGui::BeginCombo("##output_res", kOutputs[sel].label)) {
+                    for (int i = 0; i < COUNT(kOutputs); ++i)
+                        if (allowed(kOutputs[i]) && ImGui::Selectable(kOutputs[i].label, i == sel))
+                            game_ini.set("output_res", kOutputs[i].key);
+                    ImGui::EndCombo();
+                }
+            }
+            {
+                int strength = game_ini.num("sharpen", 0) ? int(std::atof(game_ini.str("sharpness", "0").c_str()) * 100.0 + 0.5) : 0;
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted("Sharpening");
+                ImGui::SameLine(190);
+                ImGui::SetNextItemWidth(kCol - 190 - 12);
+                if (ImGui::SliderInt("##sharpening", &strength, 0, 100, "%d%%")) {
+                    char buf[16];
+                    std::snprintf(buf, sizeof(buf), "%.2f", strength / 100.0);
+                    game_ini.set("sharpness", buf);
+                    game_ini.set("sharpen", strength ? "1" : "0");
+                }
+            }
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::PushTextWrapPos(kCol - 20);
+            ImGui::TextUnformatted("FSR output has no effect while FSR is off. Picking the same size as the internal resolution gives FSR anti-aliasing only.");
+            ImGui::PopTextWrapPos();
+            ImGui::PopStyleColor();
 
             section("LOGGING");
             {
