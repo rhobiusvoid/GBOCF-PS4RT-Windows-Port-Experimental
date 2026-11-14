@@ -17,12 +17,13 @@ PS4RT neither supplies these files nor bypasses the game's volume locks. No PS4 
 ## Download and play
 
 1. Download the latest build from the **Releases** page (if it is split in parts, follow [WINDOWS-PORT.md](WINDOWS-PORT.md) to join them) and extract it to a short, writable path such as `C:\CodeFairy\`.
-2. Double-click **`NoisyFairy.bat`** to open the launcher. Press **Browse** and pick your extracted `CUSA28763` folder, then **Play**. Graphics settings are on the launcher's **Options** tab.
-3. Follow the setup window for the v01.03 update and volume keys if needed (volume keys can also be installed later with **Install Volume Keys...** on the launcher).
+2. Double-click **`NoisyFairy.bat`** to open the launcher.
+3. On the **Launcher** tab, press **Browse**, pick your extracted `CUSA28763` folder, then press **Play**. The folder is remembered for next time.
+4. If your game is v01.00, a setup window asks for your v01.03 update PKG on the first launch. Install your three volume keys with **Install Volume Keys...** (the button disappears once they are installed), then restart the game.
 
-The game folder is remembered. The command line still works for advanced use: `Play-Game.bat --game "C:\path\to\extracted\CUSA28763"`, plus `--dlc-pkg <path>` (include the `.pkg` extension) to install volume keys.
+That's all you need: no command line required. The **Options** tab has the graphics settings and a **Write log file** switch (on by default) that saves a log to `out\CUSA28763\user\log` for bug reports.
 
-**The game should start within a few seconds.** If it sits on a black screen and never shows the Bandai Namco logo, it has stalled: close it and report it on the **Issues** tab with the newest file from `out\CUSA28763\user\log` (the launcher writes one by default).
+**The game should start within a few seconds.** If it sits on a black screen and never shows the Bandai Namco logo, it has stalled: close it and report it on the **Issues** tab with the newest file from that log folder.
 
 Requirements: Windows 10 1803+ (64-bit) and a Vulkan 1.3 GPU. Full guide: [Running on Windows](docs/RUNNING_WINDOWS.md).
 
@@ -30,17 +31,17 @@ Requirements: Windows 10 1803+ (64-bit) and a Vulkan 1.3 GPU. Full guide: [Runni
 
 **Code Fairy v01.03 is required.**
 
-- **Already have extracted v01.03:** PS4RT validates and prepares the game directly.
-- **Have extracted v01.00:** The integrated setup asks for your own matching **CUSA28763 v01.03 update PKG** and applies the update before launching.
+- **Already have extracted v01.03:** the launcher validates and prepares the game directly.
+- **Have extracted v01.00:** the setup window asks for your own matching **CUSA28763 v01.03 update PKG** and applies the update before launching.
 - **Important:** Applying that update **modifies the selected extracted CUSA28763 directory in place**. Back up the original v01.00 directory beforehand if you need to preserve it for another application. Your source PKG is not modified.
-- **Three volume unlock-key PKGs are required to access all three volumes.** Code Fairy is episodic: these keys unlock existing story content; they are not conventional add-on DLC. After applying an update, PS4RT may offer a package picker. You can skip it to finish setup, but the volumes remain locked until their keys are installed. You can install the keys later using **Install DLC...** in the Graphics overlay by pressing 'Insert.'
-- If setup is interrupted, rerun the launcher and supply the same update PKG to repair the installation.
+- **Three volume unlock-key PKGs are required to access all three volumes.** Code Fairy is episodic: these keys unlock existing story content; they are not conventional add-on DLC. After applying an update, a package picker may offer to install them. You can skip it, but the volumes stay locked until their keys are installed. Install them any time with **Install Volume Keys...** on the launcher (or **Install DLC...** in the in-game overlay, opened with Insert), then restart the game.
+- If setup is interrupted, press Play again and supply the same update PKG to repair the installation.
 
-See [Player update and volume-key setup](docs/PLAYER_PKG_SETUP.md) for detailed steps and command-line alternatives.
+See [Player update and volume-key setup](docs/PLAYER_PKG_SETUP.md) for details (it also lists command-line alternatives for advanced users).
 
 ### Graphics and controls
 
-Open the PS4RT menu with **Insert** on the keyboard, or **hold L2 and click R3** on a controller. Use the D-pad to navigate, Cross to select, and Circle to return. The menu separates **Graphics** from **Achievements**, with Code Fairy's compact two-tab layout. The Graphics page also provides FPS and game-related controls.
+Choose your settings on the launcher's **Options** tab before you start; they are saved immediately and apply on the next launch. The same settings are available in-game: open the PS4RT menu with **Insert** on the keyboard, or **hold L2 and click R3** on a controller. Use the D-pad to navigate, Cross to select, and Circle to return. The menu separates **Graphics** from **Achievements**, with Code Fairy's compact two-tab layout. The Graphics page also provides FPS and game-related controls.
 
 Available features include:
 
@@ -50,13 +51,13 @@ Available features include:
 - **Frame rate:** The game's original **60 FPS** behavior, with an optional **30 FPS cap** for weaker devices.
 - **Anisotropic filtering** (game default, 2×, 4×, 8×, 16×), sharpening, display options, and an FPS counter.
 - **Local achievements:** The game triggers trophy unlocks; the PS4RT overlay saves and displays progress, earned timestamps, icons and hidden entries. This is **not PSN trophy synchronization**, and previously completed objectives are not guaranteed to unlock retroactively.
-- **Volume key installation:** Use the overlay's existing **Install DLC...** button for the three volume unlock-key PKGs. The button retains its generic name because the keys use the same PS4 add-on package mechanism; **no separate DLC is required**. Save and restart after installing keys so the game recognizes the unlocked volumes.
+- **Volume key installation:** use **Install Volume Keys...** on the launcher (or the overlay's **Install DLC...** button, which keeps its generic name because the keys use the same PS4 add-on package mechanism; **no separate DLC is required**). Restart after installing keys so the game recognizes the unlocked volumes.
 
-The in-game menu also offers **FSR 1** and the finer-grained internal/ultrawide choices; not every menu option has a launcher flag. See [Running on Windows](docs/RUNNING_WINDOWS.md) for details.
+See [Running on Windows](docs/RUNNING_WINDOWS.md) for details.
 
 ## Current compatibility status
 
-**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart. Boots on GTX 10-series, RTX 30/50-series and AMD cards (0.5 Alpha). A rare, random black-screen stall at boot has been seen; see the launch note above. Chapters beyond that and Volume 2/3 are untested on Windows, and the port should be treated as an alpha.
+**Windows port:** tested on Windows 10 with a GTX 1050 Ti. It boots to the main menu and plays through the Chapter 1 tutorial; trophy unlocks no longer crash, and save data loads correctly after restart. Boots on GTX 10-series, RTX 30/50-series and AMD cards (0.5 Beta). A rare, random black-screen stall at boot has been seen; see the note under Download and play. Chapters beyond that and Volume 2/3 are untested on Windows, and the port is still a beta: expect rough edges.
 
 **Original Linux build (by Hekami):** playable and tested through Chapter 9 (Volume 2) on a Radeon 9070XT and Ryzen 9700X, covering the tutorial, story missions, combat and bosses, cutscenes, menus, saving/loading and completion of Volume 1. Volume 3 has not been fully gameplay-tested. Screenshots document a particular configuration, not a performance guarantee.
 

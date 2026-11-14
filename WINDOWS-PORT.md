@@ -1,4 +1,4 @@
-# NoisyFairy: Windows port (0.5 Alpha, experimental)
+# NoisyFairy: Windows port (0.5 Beta)
 
 Unofficial Windows port of https://github.com/HekamiAeon/GBO-Code-Fairy-PS4RT by HekamiAeon (GPL-2.0-or-later; upstream
 history is not included here, this is a snapshot of upstream plus the port changes). All credit for the original runtime goes to Hekami.
