@@ -225,6 +225,8 @@ static HANDLE spawn_launcher(const fs::path& root, const std::vector<std::string
     SetEnvironmentVariableW(L"PATH", path.c_str());
     SetEnvironmentVariableW(L"PS4RT_FSR4_DIR", (root / "fsr4_shaders").wstring().c_str());
     SetEnvironmentVariableW(L"PYTHONUNBUFFERED", L"1");
+    // With a log file, the runtime also prints every thread's state at 10/20/40/80 s (stall diagnosis).
+    SetEnvironmentVariableW(L"PS4RT_HANG_WATCH", log_path.empty() ? nullptr : L"1");
 
     STARTUPINFOW si{};
     si.cb = sizeof(si);

@@ -719,6 +719,8 @@ int main(int argc, char **argv) {
     /* The stubs follow the image in the same low mapping (rel32 jmps reach them). */
     size_t stub_area = isa_table ? round_page(isa_stub_area_size(isa_table)) : 0;
     image = allocate(round_page(size) + stub_area + page_size);
+    runtime_image_base = (uintptr_t)image;
+    runtime_watch_start();
     unsigned char *stubs = image + round_page(size);
     unsigned char *title_stubs = stubs + stub_area; /* title-specific hooks: one page after the ISA stubs */
     if (fread(image, 1, size, f) != size || fgetc(f) != EOF) fail("incorrect memory image size");

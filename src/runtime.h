@@ -138,4 +138,10 @@ void runtime_savedata_report(void);
 int runtime_savedata_param(int32_t user, const char *dir, void *param);
 int runtime_savedata_icon(int32_t user, const char *dir, char *out, size_t size);
 void runtime_thread_attach_host(const char *name);
+/* Hang diagnostics (PS4RT_HANG_WATCH=1): blocking calls record what they wait on; a watchdog thread
+ * prints every guest thread's state (and, on Windows, its instruction pointer) at a few set times. */
+extern uintptr_t runtime_image_base;
+void runtime_wait_begin(const char *kind, const void *object, const void *caller);
+void runtime_wait_end(void);
+void runtime_watch_start(void);
 #endif

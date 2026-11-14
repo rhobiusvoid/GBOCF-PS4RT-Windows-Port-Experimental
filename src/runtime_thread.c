@@ -46,6 +46,13 @@ typedef struct GuestThread {
     ThreadAttr attr;
     char name[32];
     int detached, finished, joined, host_owned;
+    /* Hang diagnostics: what this thread is blocked on (NULL kind = running). */
+    const char *volatile wait_kind;
+    const void *volatile wait_object, *volatile wait_caller;
+    volatile uint64_t wait_since_ms;
+#ifdef _WIN32
+    HANDLE os_thread;
+#endif
 #ifdef _WIN32
     ps4rt_jmp_buf exit_jump; /* no SEH unwinding through guest frames */
 #else
@@ -102,6 +109,10 @@ static void attach(GuestThread *t) {
     tcb[1]=(uint64_t)(uintptr_t)dtv;         /* tcb_dtv (static module only) */
     tcb[2]=(uint64_t)(uintptr_t)t;           /* tcb_thread */
     t->tls_block=block; t->tcb=tcb;
+#ifdef _WIN32
+    DuplicateHandle(GetCurrentProcess(),GetCurrentThread(),GetCurrentProcess(),&t->os_thread,
+                    THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT|THREAD_QUERY_INFORMATION,FALSE,0);
+#endif
     set_gs(tcb);
     current=t;
 }
@@ -325,7 +336,9 @@ static ABI int32_t thread_join(GuestThread *t,void **result) {
     if (t->detached || t->joined) return ERR(22);
     t->joined=1;
     void *value=NULL;
+    runtime_wait_begin("join",t,__builtin_return_address(0));
     int e=pthread_join(t->host,&value);
+    runtime_wait_end();
     if (e) { fprintf(stderr,"STOP: host pthread_join failed: %d\n",e); exit(21); }
     if (result) *result=t->result;
     pthread_mutex_lock(&lock); ++joined_count; pthread_mutex_unlock(&lock);
@@ -429,3 +442,86 @@ void runtime_thread_report(void) {
     pthread_mutex_unlock(&lock);
 }
 
+
+/* ---- hang diagnostics ---------------------------------------------------------------------- */
+uintptr_t runtime_image_base;
+#ifdef _WIN32
+static uint64_t watch_now_ms(void) { return GetTickCount64(); }
+#else
+#include <time.h>
+static uint64_t watch_now_ms(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC,&ts); return (uint64_t)ts.tv_sec*1000+(uint64_t)ts.tv_nsec/1000000; }
+#endif
+void runtime_wait_begin(const char *kind,const void *object,const void *caller) {
+    GuestThread *t=current;
+    if (!t) return;
+    t->wait_object=object; t->wait_caller=caller; t->wait_since_ms=watch_now_ms();
+    t->wait_kind=kind;
+}
+void runtime_wait_end(void) {
+    GuestThread *t=current;
+    if (t) t->wait_kind=NULL;
+}
+#define WATCH_MAX 192
+typedef struct { GuestThread *t; const char *kind; const void *object,*caller; uint64_t since; uintptr_t rip,rsp; int have_ctx; } WatchRow;
+static void watch_dump(unsigned long seconds) {
+    static WatchRow rows[WATCH_MAX];
+    size_t n=0;
+    uint64_t now=watch_now_ms();
+    pthread_mutex_lock(&lock);
+    for (GuestThread *t=threads;t && n<WATCH_MAX;t=t->next) {
+        if (t->finished) continue;
+        rows[n]=(WatchRow){.t=t,.kind=t->wait_kind,.object=t->wait_object,.caller=t->wait_caller,.since=t->wait_since_ms};
+        ++n;
+    }
+    pthread_mutex_unlock(&lock);
+#ifdef _WIN32
+    /* Suspend, read, resume without printing or allocating in between (a suspended thread may hold the CRT lock). */
+    for (size_t i=0;i<n;++i) {
+        HANDLE h=rows[i].t->os_thread;
+        if (!h || rows[i].t->host==pthread_self()) continue;
+        if (SuspendThread(h)==(DWORD)-1) continue;
+        CONTEXT ctx; memset(&ctx,0,sizeof ctx); ctx.ContextFlags=CONTEXT_CONTROL;
+        if (GetThreadContext(h,&ctx)) { rows[i].rip=(uintptr_t)ctx.Rip; rows[i].rsp=(uintptr_t)ctx.Rsp; rows[i].have_ctx=1; }
+        ResumeThread(h);
+    }
+#endif
+    printf("Hang watch @%lus: %zu guest threads (image base %p)\n",seconds,n,(void*)runtime_image_base);
+    for (size_t i=0;i<n;++i) {
+        WatchRow *r=&rows[i];
+        char where[96]="";
+        if (r->have_ctx) {
+            uintptr_t rip=r->rip;
+            if (runtime_image_base && rip>=runtime_image_base && rip<runtime_image_base+0x4000000)
+                snprintf(where,sizeof where," running guest+0x%llx",(unsigned long long)(rip-runtime_image_base));
+            else snprintf(where,sizeof where," host rip=%p",(void*)rip);
+        }
+        if (r->kind) {
+            char caller[48]="";
+            if (r->caller && (uintptr_t)r->caller>=runtime_image_base)
+                snprintf(caller,sizeof caller," from guest+0x%llx",(unsigned long long)((uintptr_t)r->caller-runtime_image_base));
+            printf("  %-32s waiting %s %p for %llu ms%s\n",r->t->name,r->kind,r->object,(unsigned long long)(now-r->since),caller);
+        } else printf("  %-32s not blocked%s\n",r->t->name,where);
+    }
+    fflush(stdout);
+}
+static void *watch_main(void *unused) {
+    (void)unused;
+    static const unsigned long at[]={10,20,40,80};
+    unsigned long elapsed=0;
+    for (size_t i=0;i<sizeof(at)/sizeof(*at);++i) {
+#ifdef _WIN32
+        Sleep((DWORD)((at[i]-elapsed)*1000));
+#else
+        sleep((unsigned)(at[i]-elapsed));
+#endif
+        elapsed=at[i];
+        watch_dump(elapsed);
+    }
+    return NULL;
+}
+void runtime_watch_start(void) {
+    const char *on=getenv("PS4RT_HANG_WATCH");
+    if (!on || *on!='1') return;
+    pthread_t th;
+    if (!pthread_create(&th,NULL,watch_main,NULL)) pthread_detach(th);
+}

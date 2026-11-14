@@ -147,7 +147,9 @@ static int32_t take(Handle *h,void *out,int wait) {
         trace(TR_POP_WAIT,q,0);
         PS4RT_LOADING_EVENT(PS4RT_LOAD_ULT_WAIT, q, 0);
     }
+    if (!q->count && wait) runtime_wait_begin("ult-queue",q,__builtin_return_address(0));
     while (!q->count && wait) pthread_cond_wait(&q->ready,&q->lock);
+    if (wait) runtime_wait_end();
     if (!q->count) result=ULT_EMPTY;
     else {
         memcpy(out,q->slots+(size_t)q->head*q->size,q->size);

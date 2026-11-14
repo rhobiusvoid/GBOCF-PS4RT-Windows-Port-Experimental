@@ -103,7 +103,13 @@ static ABI int32_t mutex_lock(GuestMutex **mutex) {
     GuestMutex *m;
     int32_t e = live_mutex(mutex, &m);
     if (e) return e;
-    e = orbis_error(pthread_mutex_lock(&m->native));
+    int native = pthread_mutex_trylock(&m->native);
+    if (native == EBUSY) {   /* contended: record what this thread waits on (hang watch) */
+        runtime_wait_begin("mutex", m, __builtin_return_address(0));
+        native = pthread_mutex_lock(&m->native);
+        runtime_wait_end();
+    }
+    e = orbis_error(native);
     if (!e) __atomic_fetch_add(&locks, 1, __ATOMIC_RELAXED);
     return e;
 }
@@ -204,7 +210,10 @@ static ABI int32_t cond_wait(GuestCond **cond, GuestMutex **mutex) {
     e = live_mutex(mutex, &m);
     if (e) return e;
     ++waits;
-    return orbis_error(pthread_cond_wait(&(*cond)->native, &m->native));
+    runtime_wait_begin("cond", *cond, __builtin_return_address(0));
+    e = orbis_error(pthread_cond_wait(&(*cond)->native, &m->native));
+    runtime_wait_end();
+    return e;
 }
 static int32_t cond_wait_until(GuestCond **cond, GuestMutex **mutex, const struct timespec *end) {
     int32_t e = ensure_cond(cond);
@@ -214,7 +223,10 @@ static int32_t cond_wait_until(GuestCond **cond, GuestMutex **mutex, const struc
     e = live_mutex(mutex, &m);
     if (e) return e;
     ++waits;
-    return timed_error(pthread_cond_timedwait(&(*cond)->native, &m->native, end));
+    runtime_wait_begin("cond(timed)", *cond, __builtin_return_address(0));
+    e = timed_error(pthread_cond_timedwait(&(*cond)->native, &m->native, end));
+    runtime_wait_end();
+    return e;
 }
 static ABI int32_t cond_timedwait(GuestCond **cond, GuestMutex **mutex, uint32_t usec) {
     struct timespec end;
